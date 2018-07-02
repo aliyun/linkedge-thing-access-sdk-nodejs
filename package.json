@@ -1,0 +1,35 @@
+{
+  "name": "linkedge-thing-access-sdk",
+  "version": "0.1.0",
+  "description": "A repository supports connecting things to LinkEdge.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test-unit",
+    "test-unit": "./node_modules/.bin/mocha --colors -t 30000 \"test/unit/**/*.test.js\"",
+    "cover-unit": "node_modules/.bin/istanbul cover ./node_modules/mocha/bin/_mocha -- -t 30000 \"test/unit/**/*.test.js\"",
+    "generate-docs": "node_modules/.bin/jsdoc -c .jsdoc.json -d docs/references -P package.json -R README.md --verbose"
+  },
+  "keywords": [
+    "access",
+    "fc",
+    "Function Compute",
+    "LinkEdge",
+    "node"
+  ],
+  "author": "Alibaba Group Holding Ltd.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "dbus-native": "github:sidorares/dbus-native#d65449c"
+  },
+  "files": [
+    "lib",
+    "index.js"
+  ],
+  "devDependencies": {
+    "istanbul": "^0.4.5",
+    "jsdoc": "^3.5.5",
+    "mocha": "^5.2.0",
+    "should": "^13.2.1",
+    "sinon": "^5.1.1"
+  }
+}

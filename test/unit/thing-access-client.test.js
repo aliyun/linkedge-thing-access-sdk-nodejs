@@ -158,7 +158,7 @@ describe('ThingAccessClient', function () {
           connection: fakeCreateConnection(),
           getService: fakeGetService,
           requestName: function (name, flags, callback) {
-            if (name === 'iot.driver.function_id') {
+            if (name === `iot.driver.${process.env.FUNCTION_ID}`) {
               callback(new Error('Request module service name error.'));
             }
           }
@@ -563,7 +563,7 @@ describe('ThingAccessClient', function () {
         }).should.be.rejected().then(restore, restore);
     });
     it('should pass since invoking get function correctly',function (done) {
-      var get;
+      var callServices;
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -571,7 +571,9 @@ describe('ThingAccessClient', function () {
           requestName: fakeRequestName,
           releaseName: fakeReleaseName,
           exportInterface: function (iface, objPath, ifaceDesc) {
-            get = iface.get;
+            if (iface.callServices) {
+              callServices = iface.callServices;
+            }
           },
         };
       });
@@ -585,13 +587,13 @@ describe('ThingAccessClient', function () {
           return client.registerAndOnline();
         })
         .then(function () {
-          get(JSON.stringify({
-            params: ['key1', ['key2']]
+          callServices('get', JSON.stringify({
+            params: ['key1', 'key2']
           }));
         }).should.not.be.rejected().then(restore, restore);
     });
     it('should pass since invoking set function correctly',function (done) {
-      var set;
+      var callServices;
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -599,7 +601,9 @@ describe('ThingAccessClient', function () {
           requestName: fakeRequestName,
           releaseName: fakeReleaseName,
           exportInterface: function (iface, objPath, ifaceDesc) {
-            set = iface.set;
+            if (iface.callServices) {
+              callServices = iface.callServices;
+            }
           },
         };
       });
@@ -613,7 +617,7 @@ describe('ThingAccessClient', function () {
           return client.registerAndOnline();
         })
         .then(function () {
-          set(JSON.stringify({
+          callServices('set', JSON.stringify({
             params: {
               key1: 'value1',
               key2: 'value2',

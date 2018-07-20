@@ -92,21 +92,24 @@ const RESULT_FAILURE = -3;
  * <pre>
  *   const callbacks = {
       setProperties: function (properties) {
-        // Set properties to thing and return the result.
+        // Set properties to the physical thing and return the result.
+        // Return an object representing the result or the promise wrapper of the object.
         return {
           code: RESULT_SUCCESS,
           message: 'success';
         };
       },
       getProperties: function (keys) {
-        // Get properties from thing and return them.
+        // Get properties from the physical thing and return the result.
+        // Return an object representing the result or the promise wrapper of the object.
         return {
           code: RESULT_SUCCESS,
           message: 'success';
         };
       },
       callService: function (name, args) {
-        // Call services on thing and return the result.
+        // Call services on the physical thing and return the result.
+        // Return an object representing the result or the promise wrapper of the object.
         return {
           code: RESULT_SUCCESS,
           message: 'success';
@@ -126,20 +129,16 @@ const RESULT_FAILURE = -3;
         return new Promise(() => {
           setInterval(() => {
             client.reportEvent('high_temperature', {temperature: 41});
-            client.reportProperties({
-              'temperature': 41,
-            });
+            client.reportProperties({'temperature': 41});
           }, 2000);
         });
       })
-      .then(() => {
-        return client.offline();
-      })
-      .then(() => {
-        return client.cleanup()
-      })
       .catch(err => {
-        console.log('Error: ' + err);
+        console.log(err);
+        client.cleanup();
+      });
+      .catch(err => {
+        console.log(err);
       });
  * </pre>
  */

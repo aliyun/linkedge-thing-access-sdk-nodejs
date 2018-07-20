@@ -28,70 +28,60 @@ var configs = [
     deviceName: 'Your Device Name'
   },
 ];
+
 var args = configs.map((config) => {
   var self = {
     config,
+    thing: {
+      temperature: 41,
+    },
     callbacks: {
       setProperties: function (properties) {
-        // Properties is formed as follow:
-        // {
-        //   key1: 'value1',
-        //   key2: 'value2'
-        // };
-        // Set properties to thing and return the result.
+        // Usually, in this callback we should set properties to the physical thing and
+        // return the result. Here we just return a failed result since the properties
+        // are read-only.
         console.log('Set properties %s to thing %s-%s', JSON.stringify(properties),
           config.productKey, config.deviceName);
-        // Return a object result or a promise of it. Throw the error if one raises.
+        // Return an object representing the result in the following form or the promise
+        // wrapper of the object.
         return {
-          code: RESULT_SUCCESS,
-          message: 'success',
-          params: { // Optional
-            key1: 'value1',
-            key2: 'value2',
-          }
+          code: RESULT_FAILURE,
+          message: 'failure',
         };
       },
       getProperties: function (keys) {
-        // Keys is formed as follow:
-        // ['key1', 'key2'];
-
-        // Get properties from thing and return them.
+        // Usually, in this callback we should get properties from the physical thing and
+        // return the result. Here we return the simulated properties.
         console.log('Get properties %s from thing %s-%s', JSON.stringify(keys),
           config.productKey, config.deviceName);
-        // Return a object result or a promise of it. Throw the error if one raises.
-        return {
-          code: RESULT_SUCCESS,
-          message: 'success',
-          params: {
-            key1: 'value1',
-            key2: 'value2',
-          }
-        };
-      },
-      callService: function (name, args) {
-        // Name and args are formed as follow:
-        // name: 'service name';
-        // args: {
-        //   key1: 'value1',
-        //   key2: 'value2'
-        // };
-
-        // Call services on thing and return the result.
-        console.log('Call service %s with %s on thing %s-%s', JSON.stringify(name),
-          JSON.stringify(args), config.productKey, config.deviceName);
-        // Return a object result or a promise of it. Throw the error if one raises.
-        return new Promise((resolve) => {
-          resolve({
+        // Return an object representing the result in the following form or the promise
+        // wrapper of the object.
+        if (keys.includes('temperature')) {
+          return {
             code: RESULT_SUCCESS,
             message: 'success',
-            params: { // Optional
-              code: 200,
-              message: 'success',
-              data: { // Optional
-                key1: 'value1',
-                key2: 'value2'
-              }
+            params: {
+              temperature: self.thing.temperature,
             }
+          };
+        }
+        return {
+          code: RESULT_FAILURE,
+          message: 'The requested properties does not exist.',
+        }
+      },
+      callService: function (name, args) {
+        // Usually, in this callback we should call services on the physical thing and
+        // return the result. Here we just return a failed result since no service
+        // provided by the thing.
+        console.log('Call service %s with %s on thing %s-%s', JSON.stringify(name),
+          JSON.stringify(args), config.productKey, config.deviceName);
+        // Return an object representing the result in the following form or the promise
+        // wrapper of the object
+        return new Promise((resolve) => {
+          resolve({
+            code: RESULT_FAILURE,
+            message: 'The requested service does not exist.',
           })
         });
       }
@@ -99,6 +89,7 @@ var args = configs.map((config) => {
   };
   return self;
 });
+
 args.forEach((item) => {
   var client = new ThingAccessClient(item.config, item.callbacks);
   client.setup()
@@ -109,18 +100,17 @@ args.forEach((item) => {
       // Push events and properties to LinkEdge platform.
       return new Promise(() => {
         setInterval(() => {
-          client.reportEvent('high_temperature', {temperature: 41});
-          client.reportProperties({
-            'temperature': 41,
-          });
+          var temperature = item.thing.temperature;
+          if (temperature > 40) {
+            client.reportEvent('high_temperature', {'temperature': temperature});
+          }
+          client.reportProperties({'temperature': temperature});
         }, 2000);
       });
     })
-    .then(() => {
-      return client.offline();
-    })
-    .then(() => {
-      return client.cleanup();
+    .catch(err => {
+      console.log(err);
+      client.cleanup();
     })
     .catch(err => {
       console.log(err);

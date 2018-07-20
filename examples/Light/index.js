@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * The example demonstrates connecting a simulated light to a LinkEdge gateway
+ * using LinkEdge Thing Access Node.js SDK. The light reports its switch state
+ * once the state changed. Since the function is long-lived it will run forever
+ * when deployed to a LinkEdge gateway.
+ */
+
 'use strict';
 
 const {
@@ -30,28 +37,35 @@ var configs = [
 ];
 var args = configs.map((config) => {
   var self = {
-    thermometer: {
-      temperature: 28,
+    lightSwitch: {
+      isOn: true,
     },
     config,
     callbacks: {
       setProperties: function (properties) {
         console.log('Set properties %s to thing %s-%s', JSON.stringify(properties),
           config.productKey, config.deviceName);
+        if ('LightSwitch' in properties) {
+          self.lightSwitch.isOn = properties['LightSwitch'] === 1;
+          return {
+            code: RESULT_SUCCESS,
+            message: 'success',
+          };
+        }
         return {
           code: RESULT_FAILURE,
-          message: 'The property is read-only.',
+          message: 'The requested properties does not exist.',
         };
       },
       getProperties: function (keys) {
         console.log('Get properties %s from thing %s-%s', JSON.stringify(keys),
           config.productKey, config.deviceName);
-        if (keys.includes('temperature')) {
+        if (keys.includes('LightSwitch')) {
           return {
             code: RESULT_SUCCESS,
             message: 'success',
             params: {
-              temperature: self.thermometer.temperature,
+              'LightSwitch': self.lightSwitch.isOn ? 1 : 0,
             }
           };
         }
@@ -81,29 +95,31 @@ args.forEach((item) => {
     .then(() => {
       // Push events and properties to LinkEdge platform.
       return new Promise(() => {
+        var properties = {'LightSwitch': item.lightSwitch.isOn ? 1 : 0};
+        client.reportProperties(properties);
+
+        var isOn = item.lightSwitch.isOn;
         setInterval(() => {
-          if (item.thermometer.temperature >= 35) {
-            item.thermometer.temperature =25;
-          } else {
-            item.thermometer.temperature++;
+          if (isOn !== item.lightSwitch.isOn) {
+            // Properties changed, report it.
+            properties = {'LightSwitch': item.lightSwitch.isOn ? 1 : 0};
+            console.log(`Report properties: ${JSON.stringify(properties)}`);
+            client.reportProperties(properties);
+            isOn = item.lightSwitch.isOn;
           }
-          var properties = {'temperature': item.thermometer.temperature};
-          console.log(`Report properties: ${JSON.stringify(properties)}`);
-          client.reportProperties(properties);
         }, 2000);
       });
     })
-    .then(() => {
-      return client.offline();
-    })
-    .then(() => {
-      return client.cleanup();
+    .catch(err => {
+      console.log(err);
+      client.cleanup();
     })
     .catch(err => {
       console.log(err);
     });
 });
 
+// This is a handler which never be invoked in the example.
 module.exports.handler = function (event, context, callback) {
   console.log(event);
   console.log(context);

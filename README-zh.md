@@ -1,7 +1,7 @@
-# LinkEdge设备接入SDK函数计算Node.js版
-英文版请参阅[这里](README.md)
+[English](README.md)|[中文](README-zh.md)
 
-本项目提供一个Node.js包，方便用户在[LinkEdge](https://iot.aliyun.com/products/linkedge?spm=a2c56.193971.1020487.5.666025c8LPHl1r)上编写[函数计算](https://www.aliyun.com/product/fc?spm=5176.8142029.388261.292.e9396d3eVdDQfj)来接入设备。
+# LinkEdge设备接入SDK函数计算Node.js版
+本项目提供一个Node.js包，方便用户在[LinkEdge](https://iot.aliyun.com/products/linkedge?spm=a2c56.193971.1020487.5.666025c8LPHl1r)上编写[函数计算](https://www.aliyun.com/product/fc?spm=5176.8142029.388261.292.e9396d3eVdDQfj)以接入设备。
 
 ## 快速开始 - HelloThing
 `HelloThing`示例演示使用函数计算将设备接入LinkEdge的全过程。
@@ -16,12 +16,12 @@
 9. 在*代码配置*区选择*代码包上传*，并上传代码zip包。
 10. 函数入口填写*index.handler*。
 11. 回到LinkEdge控制台并创建一个新的分组。
-12. 添加LinkEdge网关设备、`HelloThing`设备和`HelloThing`函数到新创建的分组。
+12. 添加LinkEdge网关设备、`HelloThing`设备和`HelloThing`函数到新创建的分组。`HelloThing`函数的运行模式设置为*持续运行*。
 13. 使用如下配置添加*消息路由*：
   * 消息来源：`HelloThing`设备
   * TopicFilter：属性
   * 消息目标：IoT Hub
-14. 部署分组。`HelloThing`设备的上报的属性和事件将会每隔2秒被同步到云端，可以在LinkEdge控制台设备运行状态页面查看。
+14. 部署分组。`HelloThing`设备将每隔2秒上报属性到云端，可在LinkEdge控制台设备运行状态页面查看。
 
 ## 使用
 首先，安装设备接入SDK：
@@ -73,7 +73,6 @@ const callbacks = {
   }
 };
 
-
 var client = new ThingAccessClient(config, callbacks);
 client.setup()
   .then(() => {
@@ -82,33 +81,25 @@ client.setup()
   .then(() => {
     // Push events and properties to LinkEdge platform.
     return new Promise((resolve) => {
-      var count = 0;
-      var timeout = setInterval(() => {
-        count++;
-        /*if (count >= 3) {
-          clearInterval(timeout);
-          resolve();
-        }*/
+      setInterval(() => {
         client.reportEvent('high_temperature', {temperature: 41});
-        client.reportProperties({
-          'temperature': 41,
-        });
+        client.reportProperties({'temperature': 41});
       }, 2000);
     });
   })
-  .then(() => {
-    return client.offline();
-  })
-  .then(() => {
-    return client.cleanup();
-  })
+  .catch(err => {
+    client.cleanup();
+    console.log(err);
+  });
   .catch(err => {
     console.log(err);
   });
 ```
 
+接下来，按照上述[快速开始](#快速开始-hellothing)的步骤上传和测试函数。
+
 ## API参考文档
-在项目根目录执行如下命令将会在`docs`目录生成API参考文档。
+在项目根目录执行如下命令将生成API参考文档至`docs`目录：
 ```
 npm run generate-docs
 ```

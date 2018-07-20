@@ -14,6 +14,14 @@
  * limitations under the License.
  */
 
+
+/*
+ * The example demonstrates connecting a simulated light sensor to a LinkEdge
+ * gateway using LinkEdge Thing Access Node.js SDK. The sensor will continuously
+ * report the measured illuminance. Since the function is long-lived it will run
+ * forever when deployed to a LinkEdge gateway.
+ */
+
 'use strict';
 
 const {
@@ -30,16 +38,8 @@ var configs = [
 ];
 var args = configs.map((config) => {
   var self = {
-    // The simulated window device.
-    window: {
-      // This state is read-only.
-      isOpen: false,
-      open: function () {
-        this.isOpen = true;
-      },
-      close: function () {
-        this.isOpen = false;
-      }
+    lightSensor: {
+      illuminance: 100,
     },
     config,
     callbacks: {
@@ -54,12 +54,12 @@ var args = configs.map((config) => {
       getProperties: function (keys) {
         console.log('Get properties %s from thing %s-%s', JSON.stringify(keys),
           config.productKey, config.deviceName);
-        if (keys.includes('isOpen')) {
+        if (keys.includes('MeasuredIlluminance')) {
           return {
             code: RESULT_SUCCESS,
             message: 'success',
             params: {
-              isOpen: self.window.isOpen ? 1 : 0,
+              'MeasuredIlluminance': self.lightSensor.illuminance,
             }
           };
         }
@@ -71,13 +71,6 @@ var args = configs.map((config) => {
       callService: function (name, args) {
         console.log('Call service %s with %s on thing %s-%s', JSON.stringify(name),
           JSON.stringify(args), config.productKey, config.deviceName);
-        if (name === 'open' || name === 'close') {
-          self.window[name]();
-          return {
-            code: RESULT_SUCCESS,
-            message: 'success',
-          };
-        }
         return {
           code: RESULT_FAILURE,
           message: 'The requested service does not exist.',
@@ -94,21 +87,30 @@ args.forEach((item) => {
       return client.registerAndOnline();
     })
     .then(() => {
+      // Push events and properties to LinkEdge platform.
       return new Promise(() => {
-        console.log('Waiting here...');
+        setInterval(() => {
+          if (item.lightSensor.illuminance >= 600) {
+            item.lightSensor.illuminance = 100;
+          } else {
+            item.lightSensor.illuminance += 100;
+          }
+          var properties = {'MeasuredIlluminance': item.lightSensor.illuminance};
+          console.log(`Report properties: ${JSON.stringify(properties)}`);
+          client.reportProperties(properties);
+        }, 2000);
       });
     })
-    .then(() => {
-      return client.offline();
-    })
-    .then(() => {
-      return client.cleanup();
+    .catch(err => {
+      console.log(err);
+      client.cleanup();
     })
     .catch(err => {
       console.log(err);
     });
 });
 
+// This is a handler which never be invoked in the example.
 module.exports.handler = function (event, context, callback) {
   console.log(event);
   console.log(context);

@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/*
+ * The example demonstrates closing a light when it monitor the illuminance
+ * reported by a light sensor is greater than 500.
+ */
+
 'use strict';
 
 const edge = require('linkedge');
@@ -27,27 +32,26 @@ module.exports.handler = function (event, context, callback) {
     return;
   }
   if (!obj.topic || !obj.topic.includes('thing/event/property/post')
-    || !obj.payload || !obj.payload.temperature
-    || (obj.payload.temperature.value !== 25 && obj.payload.temperature.value !== 28)
+    || !obj.payload || !obj.payload['MeasuredIlluminance']
+    || obj.payload['MeasuredIlluminance'].value <= 500
     || !obj.provider || !obj.provider.groupId) {
     callback(null);
     return;
   }
   var group = edge.getGroupById(obj.provider.groupId);
-  group.getDeviceByProductKeyDeviceName('Air Conditioner Product Key',
-    'Air Conditioner Device Name', function (err, device) {
+  group.getDeviceByProductKeyDeviceName('Light Product Key', 'Light Device Name',
+    function (err, device) {
       if (err) {
         callback(err);
         return;
       }
-      var operator = obj.payload.temperature.value === 28 ? 'turnOn' : 'turnOff';
-      device[operator](err => {
+      device.set('LightSwitch', 0, (err => {
         if (err) {
           callback(err);
           return;
         }
-        console.log(`${operator === 'turnOn' ? 'Turn on' : 'Turn off'} device successfully!`);
+        console.log(`Turn off light successfully!`);
         callback(null);
-      });
+      }));
     });
 };

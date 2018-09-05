@@ -30,12 +30,18 @@ const {
   ThingAccessClient,
 } = require('linkedge-thing-access-sdk');
 
-var configs = [
-  {
-    productKey: 'Your Product Key',
-    deviceName: 'Your Device Name'
-  },
-];
+// Retrieves configs from the FC_DRIVER_CONFIG variable.
+var driverConfig;
+try {
+  driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
+} catch (err) {
+  throw new Error('The driver config is not in JSON format!');
+}
+var configs = driverConfig['deviceList'];
+if (!Array.isArray(configs) || configs.length === 0) {
+  throw new Error('No device is bound with the driver!');
+}
+
 var args = configs.map((config) => {
   var self = {
     lightSensor: {
@@ -80,6 +86,8 @@ var args = configs.map((config) => {
   };
   return self;
 });
+
+// Connects to LinkEdge platform.
 args.forEach((item) => {
   var client = new ThingAccessClient(item.config, item.callbacks);
   client.setup()
@@ -87,7 +95,7 @@ args.forEach((item) => {
       return client.registerAndOnline();
     })
     .then(() => {
-      // Push events and properties to LinkEdge platform.
+      // Push events and properties to LinkEdge platform every 2 seconds.
       return new Promise(() => {
         setInterval(() => {
           if (item.lightSensor.illuminance >= 600) {

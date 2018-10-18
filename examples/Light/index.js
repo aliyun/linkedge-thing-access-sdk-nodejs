@@ -15,10 +15,10 @@
  */
 
 /*
- * The example demonstrates connecting a simulated light to a LinkEdge gateway
- * using LinkEdge Thing Access Node.js SDK. The light reports its switch state
+ * The example demonstrates connecting a simulated light to a Link IoT Edge gateway
+ * using Link IoT Edge Thing Access Node.js SDK. The light reports its switch state
  * once the state changed. Since the function is long-lived it will run forever
- * when deployed to a LinkEdge gateway.
+ * when deployed to a Link IoT Edge gateway.
  */
 
 'use strict';
@@ -29,7 +29,10 @@ const {
   ThingAccessClient,
 } = require('linkedge-thing-access-sdk');
 
-// Retrieves configs from the FC_DRIVER_CONFIG variable.
+// Max retry interval in seconds for registerAndOnline.
+const MAX_RETRY_INTERVAL = 30;
+
+// Retrieves configs from the FC_DRIVER_CONFIG environment variable.
 var driverConfig;
 try {
   driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
@@ -52,7 +55,17 @@ var args = configs.map((config) => {
         console.log('Set properties %s to thing %s-%s', JSON.stringify(properties),
           config.productKey, config.deviceName);
         if ('LightSwitch' in properties) {
-          self.lightSwitch.isOn = properties['LightSwitch'] === 1;
+          var value = properties['LightSwitch'];
+          var isOn = value === 1;
+          if (self.lightSwitch.isOn !== isOn) {
+            // Pushes new property to Link IoT Edge if it changed.
+            self.lightSwitch.isOn = isOn;
+            if (self.client) {
+              properties = {'LightSwitch': value};
+              console.log(`Report properties: ${JSON.stringify(properties)}`);
+              self.client.reportProperties(properties);
+            }
+          }
           return {
             code: RESULT_SUCCESS,
             message: 'success',
@@ -93,39 +106,50 @@ var args = configs.map((config) => {
   return self;
 });
 
-// Connects to LinkEdge platform.
+// Connects to Link IoT Edge platform.
 args.forEach((item) => {
   var client = new ThingAccessClient(item.config, item.callbacks);
+  // Rejects the client reference into the item.
+  item.client = client;
   client.setup()
     .then(() => {
-      return client.registerAndOnline();
+      // Initially, try with 1 second retry interval.
+      return registerAndOnlineWithBackOffRetry(client, 1);
     })
     .then(() => {
-      // Push events and properties to LinkEdge platform.
+      // Push events and properties to Link IoT Edge platform.
       return new Promise(() => {
         var properties = {'LightSwitch': item.lightSwitch.isOn ? 1 : 0};
         client.reportProperties(properties);
 
-        var isOn = item.lightSwitch.isOn;
-        setInterval(() => {
-          if (isOn !== item.lightSwitch.isOn) {
-            // Properties changed, report it.
-            properties = {'LightSwitch': item.lightSwitch.isOn ? 1 : 0};
-            console.log(`Report properties: ${JSON.stringify(properties)}`);
-            client.reportProperties(properties);
-            isOn = item.lightSwitch.isOn;
-          }
-        }, 2000);
+        // Running...
       });
     })
     .catch(err => {
       console.log(err);
-      client.cleanup();
+      return client.cleanup();
     })
     .catch(err => {
       console.log(err);
     });
 });
+
+function registerAndOnlineWithBackOffRetry(client, retryInterval) {
+  return new Promise((resolve) => {
+    function retry(interval) {
+      client.registerAndOnline()
+        .then(() => resolve())
+        .catch((err) => {
+          console.log(`RegisterAndOnline failed due to ${err}, retry in ${interval} seconds...`);
+          setTimeout(() => {
+            var nextInterval = Math.min(MAX_RETRY_INTERVAL, interval * 2);
+            retry(nextInterval);
+          }, interval * 1000);
+        });
+    }
+    retry(retryInterval);
+  });
+}
 
 // This is a handler which never be invoked in the example.
 module.exports.handler = function (event, context, callback) {

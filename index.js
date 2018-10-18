@@ -84,8 +84,23 @@ const RESULT_SUCCESS = 0;
  */
 const RESULT_FAILURE = -3;
 
+// Error no.
+const ERROR_PROPERTY_NOT_EXIST = 109002;
+const ERROR_PROPERTY_READ_ONLY = 109003;
+const ERROR_PROPERTY_WRITE_ONLY = 109004;
+const ERROR_SERVICE_NOT_EXIST = 109005;
+const ERROR_SERVICE_INVALID_PARAM = 109006;
+const ERROR_INVALID_JSON = 109007;
+const ERROR_INVALID_TYPE = 109008;
+
+const ERROR_UNKNOWN = 100000;
+const ERROR_TIMEOUT = 100006;
+const ERROR_PARAM_RANGE_OVERFLOW = 100007;
+const ERROR_SERVICE_UNREACHABLE = 100008;
+const ERROR_FILE_NOT_EXIST = 100009;
+
 /**
- * A wrapper client of APIs for connecting things to LinkEdge platform and interactions
+ * A wrapper client of APIs for connecting things to Link IoT Edge platform and interactions
  * between them.
  * <p>
  * The most common use is as follows:
@@ -116,10 +131,16 @@ const RESULT_FAILURE = -3;
         };
       }
     };
-    const config = {
-      productKey: 'Your Product Key',
-      deviceName: 'Your Device Name',
-    };
+    var driverConfig;
+    try {
+      driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
+    } catch (err) {
+    throw new Error('The driver config is not in JSON format!');
+    }
+    var configs = driverConfig['deviceList'];
+    if (!Array.isArray(configs) || configs.length === 0) {
+      throw new Error('No device is bound with the driver!');
+    }
     const client = new ThingAccessClient(config, callbacks);
     client.setup()
       .then(() => {
@@ -149,7 +170,7 @@ class ThingAccessClient {
    * <code>callbacks</code>.
    *
    * @param {Object} config the meta data config about the client.
-   * @param {Object} callbacks callbacks to response the requests from LinkEdge platform.
+   * @param {Object} callbacks callback functions responding to the requests from Link IoT Edge platform.
    */
   constructor(config, callbacks) {
     if (!callbacks || !callbacks.getProperties || !callbacks.setProperties
@@ -163,7 +184,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Performs common constructor initialization and setup.
+   * Performs common constructor initialization and setup operations.
    *
    * @returns {Promise<Void>}
    */
@@ -172,7 +193,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Registers the thing to LinkEdge platform and informs that the thing is connected.
+   * Registers thing to Link IoT Edge platform and informs it that thing is connected.
    * When register, {@link DEVICE_NAME} will be used first if it exists, or
    * {@link LOCAL_NAME} is used.
    *
@@ -186,7 +207,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Reports a event to LinkEdge platform when happened on thing.
+   * Reports a event to Link IoT Edge platform.
    *
    * @param {String} eventName the name of the event.
    * @param {Object} args the parameters attached to the event.
@@ -196,7 +217,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Reports new property values to LinkEdge platform when some of them changed on thing.
+   * Reports new property values to Link IoT Edge platform.
    *
    * @param {Object} properties the new properties.
    */
@@ -205,7 +226,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Informs LinkEdge platform that the thing has connected.
+   * Informs Link IoT Edge platform that thing is connected.
    *
    * @returns {Promise<Void>}
    */
@@ -214,7 +235,7 @@ class ThingAccessClient {
   }
 
   /**
-   * Informs LinkEdge platform that the thing has disconnected.
+   * Informs Link IoT Edge platform that thing is disconnected.
    *
    * @returns {Promise<Void>}
    */
@@ -241,8 +262,8 @@ class ThingAccessClient {
   }
 
   /**
-   * Removes the binding between the thing and LinkEdge platform. Usually you don't call
-   * this function.
+   * Removes the binding relationship between thing and Link IoT Edge platform. You
+   * usually don't call this function.
    *
    * @returns {Promise<Void>}
    */
@@ -252,6 +273,18 @@ class ThingAccessClient {
 }
 
 module.exports = {
+  ERROR_PROPERTY_NOT_EXIST,
+  ERROR_PROPERTY_READ_ONLY,
+  ERROR_PROPERTY_WRITE_ONLY,
+  ERROR_SERVICE_NOT_EXIST,
+  ERROR_SERVICE_INVALID_PARAM,
+  ERROR_INVALID_JSON,
+  ERROR_INVALID_TYPE,
+  ERROR_UNKNOWN,
+  ERROR_TIMEOUT,
+  ERROR_PARAM_RANGE_OVERFLOW,
+  ERROR_SERVICE_UNREACHABLE,
+  ERROR_FILE_NOT_EXIST,
   PRODUCT_KEY,
   DEVICE_NAME,
   LOCAL_NAME,

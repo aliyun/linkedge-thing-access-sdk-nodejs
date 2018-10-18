@@ -1,27 +1,25 @@
 [English](README.md)|[中文](README-zh.md)
 
-# LinkEdge Thing Access SDK on Function Compute for Node.js
-The project providers a node.js package that make it easy to develop services running on [LinkEdge](https://iot.aliyun.com/products/linkedge?spm=a2c56.193971.1020487.5.666025c8LPHl1r)'s [Function Compute](https://www.alibabacloud.com/zh/product/function-compute?spm=a2796.194751.1097650.dznavproductsa13.721c1d2eTyJQsv) that connecting things to LinkEdge.
+# Link IoT Edge Thing Access SDK for Node.js
+The project providers a node.js package to develop drivers which running on [Link IoT Edge](https://help.aliyun.com/product/69083.html?spm=a2c4g.11186623.6.540.7c1b705eoBIMFA) and helping things connect to it.
 
 ## Getting Started - HelloThing
-The `HelloThing` sample demonstrates you the procedure that connecting things to LinkEdge.
+The `HelloThing` sample demonstrates you the procedure that connecting things to Link IoT Edge.
 1. Copy `examples/HelloThing` folder to your workspace.
-2. Go to LinkEdge console.
-3. Create a product, which owns an property named `temperature`(type of int32), and an event named `high_temperature`(type of int32 and has a input parameter named `temperature` whose type is int32).
-4. Create a device of the product created last step, with name `HelloThing`.
-5. Update `HelloThing/index.js` in your workspace with the `productKey` and `deviceName` of the last created device.
-6. Zip up the content of `HelloThing` folder so that the `index.js` is on the top of the zip file structure.
-7. Go to Function Compute console and create a new function with name `HelloThing`.
-8. Choose the runtime as *nodejs8*.
-9. Upload the zip file in *Code Configuration* section.
-10. Function handler is *index.handler*.
-11. Back to LinkEdge console and create a new group.
-12. Add the LinkEdge gateway device , the `HelloThing` device and the `HelloThing` function into that group. The running mode for the `HelloThing` function should be *Long-lived*.
-13. Add a *Message Router* with the folowing configuration:
+2. Zip up the content of `HelloThing` folder so that the `index.js` is on the top of the zip file structure.
+3. Go to Link IoT Edge console, **Edge Management**, **Driver Management** and then **Create Driver**.
+4. Choose the programming language as *nodejs8*.
+5. Set the driver name `HelloThing` and upload the previous zip file.
+6. Create a product, which owns an property named `temperature`(type of int32), and an event named `high_temperature`(type of int32 and has a input parameter named `temperature` whose type is int32).
+7. Create a device of the product created last step, with name `HelloThing`.
+8. Create a new group and add the Link IoT Edge gateway device into it.
+9. Go to Thing Driver tab and add `HelloThing` driver into that group.
+10. Add the `HelloThing` device into the group. Choose `HelloThing` as its driver.
+11. Add a *Message Router* with the folowing configuration:
   * Source: `HelloThing` device
   * TopicFilter: Properties.
   * Target: IoT Hub
-14. Deploy. A message from `HelloThing` device should be published to IoT Hub every 2 seconds. You can check this by going to the Device Running State page on LinkEdge console.
+12. Deploy. A message from `HelloThing` device should be published to IoT Hub every 2 seconds. You can check this by going to the Device Running State page on Link IoT Edge console.
 
 ## Usage
 First install this library:
@@ -29,16 +27,24 @@ First install this library:
 npm install linkedge-thing-access-sdk
 ```
 
-Then connect things to LinkEdge. The most common use is as follows:
+Then connect things to Link IoT Edge. The most common use is as follows:
 ```
 const {
   ThingAccessClient
 } = require('linkedge-thing-access-sdk');
 
-const config = {
-  productKey: 'Your Product Key',
-  deviceName: 'Your Device Name',
-};
+// Parse driver config to get connection info.
+var driverConfig;
+try {
+  driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
+} catch (err) {
+  throw new Error('The driver config is not in JSON format!');
+}
+var configs = driverConfig['deviceList'];
+if (!Array.isArray(configs) || configs.length === 0) {
+  throw new Error('No device is bound with the driver!');
+}
+
 const callbacks = {
   setProperties: function (properties) {
     // Set properties to the physical thing and return the result.
@@ -79,7 +85,7 @@ client.setup()
     return client.registerAndOnline();
   })
   .then(() => {
-    // Push events and properties to LinkEdge platform.
+    // Push events and properties to Link IoT Edge platform.
     return new Promise((resolve) => {
       setInterval(() => {
         client.reportEvent('high_temperature', {temperature: 41});
@@ -96,13 +102,100 @@ client.setup()
   });
 ```
 
-Next follow the [Getting Started](#getting-started-hellothing) to upload and test the function.
+Next follow the [Getting Started](#getting-started---hellothing) to upload and test the function.
 
 ## References
 You can run the following command in the project root directory to generate the API references to `docs` directory:
 ```
 npm run generate-docs
 ```
+
+The main API references are as follows.
+
+* **[ThingAccessClient()](#thingaccessclient)**
+* ThingAccessClient#**[setup()](#setup)**
+* ThingAccessClient#**[registerAndOnline()](#registerandonline)**
+* ThingAccessClient#**[online()](#online)**
+* ThingAccessClient#**[offline()](#offline)**
+* ThingAccessClient#**[getTsl()](#getTsl)**
+* ThingAccessClient#**[reportEvent()](#reportevent)**
+* ThingAccessClient#**[reportProperties()](#reportproperties)**
+* ThingAccessClient#**[cleanup()](#cleanup)**
+* ThingAccessClient#**[unregister()](#unregister)**
+
+---
+<a name="thingaccessclient"></a>
+### ThingAccessClient(config, callbacks)
+Constructs a [ThingAccessClient](#thingaccessclient) with the specified config and callbacks.
+
+* `config`: the meta data config about the client, `Object`.
+* `callbacks`: callback functions responding to the requests from Link IoT Edge platform, `Object`.
+  * `getProperties(keys)`: a function responding to get thing properties requests, `function`.
+  * `setProperties(properties)`: a fucntion responding to set thing properties requests, `function`.
+  * `callService(name, args)`: a function responding to call thing services requests, `function`.
+
+<a name="setup"></a>
+### ThingAccessClient.setup()
+Performs common constructor intialization and setup operations.
+
+Returns `Promise<Void>`.
+
+---
+<a name="registerandonline"></a>
+### ThingAccessClient.registerAndOnline()
+Registers thing to Link IoT Edge platform and informs it that thing is connected. When register, DEVICE_NAME will be used first if it exists, or LOCAL_NAME is used.
+
+Returns `Promise<Void>`.
+
+---
+<a name="online"></a>
+### ThingAccessClient.online()
+Informs Link IoT Edge platform that thing is connected.
+
+Returns `Promise<Void>`.
+
+---
+<a name="offline"></a>
+### ThingAccessClient.offline()
+Informs Link IoT Edge platform that thing is disconnected.
+
+Returns `Promise<Void>`.
+
+---
+<a name="gettsl"></a>
+### ThingAccessClient.getTsl()
+Returns the TSL(Thing Specification Language) string.
+
+Returns `Promise<String>`.
+
+---
+<a name="reportevent"></a>
+### ThingAccessClient.reportEvent(eventName, args)
+Reports a event to Link IoT Edge platform.
+
+* `eventName`: the name of the event, `String`.
+* `args`: the parameters attached to the event, `Object`.
+
+---
+<a name="reportProperties"></a>
+### ThingAccessClient.reportProperties(properties)
+Reports new property values to Link IoT Edge platform.
+
+* `properties`: the new properties, `String`.
+
+---
+<a name="cleanup"></a>
+### ThingAccessClient.cleanup()
+Called at the end of the usage of the instance to release resources.
+
+Returns `Promise<Void>`.
+
+---
+<a name="unregister"></a>
+### ThingAccessClient.unregister()
+Removes the binding relationship between thing and Link IoT Edge platform. You usually don't call this function.
+
+Returns `Promise<Void>`.
 
 ## License
 ```

@@ -22,12 +22,16 @@ const {
   ThingAccessClient,
 } = require('linkedge-thing-access-sdk');
 
-var configs = [
-  {
-    productKey: 'Your Product Key',
-    deviceName: 'Your Device Name'
-  },
-];
+var driverConfig;
+try {
+  driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
+} catch (err) {
+  throw new Error('The driver config is not in JSON format!');
+}
+var configs = driverConfig['deviceList'];
+if (!Array.isArray(configs) || configs.length === 0) {
+  throw new Error('No device is bound with the driver!');
+}
 
 var args = configs.map((config) => {
   var self = {
@@ -97,7 +101,7 @@ args.forEach((item) => {
       return client.registerAndOnline();
     })
     .then(() => {
-      // Push events and properties to LinkEdge platform.
+      // Push events and properties to Link IoT Edge platform.
       return new Promise(() => {
         setInterval(() => {
           var temperature = item.thing.temperature;
@@ -110,7 +114,7 @@ args.forEach((item) => {
     })
     .catch(err => {
       console.log(err);
-      client.cleanup();
+      return client.cleanup();
     })
     .catch(err => {
       console.log(err);

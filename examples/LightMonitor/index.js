@@ -21,37 +21,76 @@
 
 'use strict';
 
-const edge = require('linkedge');
+const leSdk = require('linkedge-core-sdk');
+
+const iotData = new leSdk.IoTData();
+
+const productKey = 'Light Product Key';
+const deviceName = 'Light Device Name';
 
 module.exports.handler = function (event, context, callback) {
-  var obj;
+
+  console.log(`LightMonitor is invoking with ${event.toString()}.`);
+
+  var illuminance;
   try {
-     obj = JSON.parse(event.toString());
+    var obj = JSON.parse(event.toString());
+    if (!obj.payload) {
+      callback(new Error(`Can't find "payload" in event.`));
+      return;
+    }
+    var payload = JSON.parse(obj.payload);
+    if (!payload['MeasuredIlluminance']) {
+      callback(new Error(`Can't find "MeasuredIlluminance" in event.`));
+      return;
+    }
+    illuminance = payload['MeasuredIlluminance'].value || 0;
   } catch (err) {
+    err = new Error(`Parse event failed due to ${err}.`);
     callback(err);
     return;
   }
-  if (!obj.topic || !obj.topic.includes('thing/event/property/post')
-    || !obj.payload || !obj.payload['MeasuredIlluminance']
-    || obj.payload['MeasuredIlluminance'].value <= 500
-    || !obj.provider || !obj.provider.groupId) {
+
+  if (illuminance > 500) {
+    turnOff(callback);
+  } else if (illuminance <= 100) {
+    turnOn(callback);
+  } else {
+    console.log(`Illuminance value is ${illuminance}, ignore.`);
     callback(null);
-    return;
   }
-  var group = edge.getGroupById(obj.provider.groupId);
-  group.getDeviceByProductKeyDeviceName('Light Product Key', 'Light Device Name',
-    function (err, device) {
-      if (err) {
-        callback(err);
-        return;
-      }
-      device.set('LightSwitch', 0, (err => {
-        if (err) {
-          callback(err);
-          return;
-        }
-        console.log(`Turn off light successfully!`);
-        callback(null);
-      }));
-    });
 };
+
+function turnOff(callback) {
+  // Turn off the light according to product key and device name.
+  iotData.setThingProperties({
+    productKey,
+    deviceName,
+    payload: {'LightSwitch': 0},
+  }, function (err) {
+    if (err) {
+      console.log(`Failed to turn off the light due to ${err}.`);
+      callback(err);
+    } else {
+      console.log(`Turns off light successfully.`);
+      callback(null);
+    }
+  });
+}
+
+function turnOn(callback) {
+  // Turn on the light according to product key and device name.
+  iotData.setThingProperties({
+    productKey,
+    deviceName,
+    payload: {'LightSwitch': 1},
+  }, function (err) {
+    if (err) {
+      console.log(`Failed to turn on the light due to ${err}.`);
+      callback(err);
+    } else {
+      console.log(`Turns on light successfully.`);
+      callback(null);
+    }
+  });
+}

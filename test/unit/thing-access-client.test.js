@@ -820,6 +820,18 @@ describe('ThingAccessClient', function () {
           return client.offline();
         }).should.be.rejected().then(restore, restore);
     });
+    it('should fail since thing is not registered', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.setup()
+        .then(function () {
+          return client.offline();
+        }).should.be.rejected().then(restore, restore);
+    });
     it('should pass since all requirements meet', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
       function restore() {
@@ -834,6 +846,7 @@ describe('ThingAccessClient', function () {
         .then(function () {
           return client.offline();
         }).should.not.be.rejected().then(restore, restore);
+        
     });
   });
   describe('#cleanup', function () {
@@ -908,10 +921,7 @@ describe('ThingAccessClient', function () {
   describe('#reportEvent', function () {
     var client;
     afterEach(function (done) {
-      client.offline()
-        .then(function () {
-          return client.cleanup();
-        })
+      client.cleanup()
         .then(function () {
           client = undefined;
           done();
@@ -949,7 +959,11 @@ describe('ThingAccessClient', function () {
           throw err;
         }).then(function () {
           client.reportEvent('high_temperature', {temperature: 41});
-        }).should.be.rejected().then(restore, restore);
+        }).should.be.rejected()
+        .then(function () {
+          return client.offline();
+        })
+        .then(restore, restore);
     });
     it('should fail since signal undefined event', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -964,7 +978,62 @@ describe('ThingAccessClient', function () {
         })
         .then(function () {
           client.reportEvent(undefined, {temperature: 41});
+        }).should.be.rejected()
+        .then(function () {
+          return client.offline();
+        })
+        .then(restore, restore);
+    });
+    it('should fail since thing is not registered', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.setup()
+        .then(function () {
+          client.reportEvent('high_temperature', {temperature: 41});
         }).should.be.rejected().then(restore, restore);
+    });
+    it('should fail since thing is unregistered', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.setup()
+        .then(function () {
+          return client.registerAndOnline();
+        })
+        .then(function () {
+          return client.unregister();
+        })
+        .then(function () {
+          client.reportEvent('high_temperature', {temperature: 41});
+        }).should.be.rejected()
+        .then(function () {
+          return client.offline();
+        }).then(restore, restore);
+    });
+  it('should fail since thing is offline', function(done) {
+    var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+    function restore() {
+      stub.restore();
+      done();
+    }
+    client = new ThingAccessClient(config, callbacks);
+    client.setup()
+        .then(function () {
+          return client.registerAndOnline();
+        })
+        .then(function () {
+          return client.offline();
+        })
+      .then(function () {
+        client.reportEvent('high_temperature', {temperature: 41});
+      }).should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -985,10 +1054,7 @@ describe('ThingAccessClient', function () {
   describe('#reportProperties', function () {
     var client;
     afterEach(function (done) {
-      client.offline()
-        .then(function () {
-          return client.cleanup();
-        })
+      client.cleanup()
         .then(function () {
           client = undefined;
           done();
@@ -1025,7 +1091,65 @@ describe('ThingAccessClient', function () {
           client.reportProperties({
             'temperature': 41,
           });
-        }).should.be.rejected().then(restore, restore);
+        }).should.be.rejected()
+        .then(function () {
+          return client.offline();
+        })
+        .then(restore, restore);
+    });
+    it('should fail since thing is not registered', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.setup()
+        .then(function () {
+        client.reportProperties({
+          'temperature': 41,
+        });
+      }).should.be.rejected().then(restore, restore);
+    });
+    it('should fail since thing is unregistered', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.setup()
+        .then(function () {
+          return client.registerAndOnline();
+        })
+        .then(function () {
+          return client.unregister();
+        })
+        .then(function () {
+        client.reportProperties({
+          'temperature': 41,
+        });
+      }).should.be.rejected().then(restore, restore);
+    });
+  it('should fail since thing is offline', function(done) {
+    var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+    function restore() {
+      stub.restore();
+      done();
+    }
+    client = new ThingAccessClient(config, callbacks);
+    client.setup()
+        .then(function () {
+          return client.registerAndOnline();
+        })
+        .then(function () {
+          return client.offline();
+        })
+      .then(function () {
+        client.reportProperties({
+          'temperature': 41,
+        });
+      }).should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -1039,10 +1163,17 @@ describe('ThingAccessClient', function () {
           return client.registerAndOnline();
         })
         .then(function () {
+          client.reportEvent('high_temperature', {temperature: 41});
+        })
+        .then(function () {
           client.reportProperties({
-            'temperature': 41,
+            'temperature': 42,
           });
-        }).should.not.be.rejected().then(restore, restore);
+        }).should.not.be.rejected()
+        .then(function () {
+          return client.offline();
+        })
+        .then(restore, restore);
     });
   });
 

@@ -13,3 +13,6 @@
 ### v0.4.0
 * Update documentation
 * Fix unit test failed cases
+
+### v0.4.1
+* Fix LightSensor restarting all the time.

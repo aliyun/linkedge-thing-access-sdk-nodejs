@@ -109,14 +109,15 @@ var args = configs.map((config) => {
 // Connects to Link IoT Edge platform.
 args.forEach((item) => {
   var client = new ThingAccessClient(item.config, item.callbacks);
-  // Rejects the client reference into the item.
-  item.client = client;
   client.setup()
     .then(() => {
       // Initially, try with 1 second retry interval.
       return registerAndOnlineWithBackOffRetry(client, 1);
     })
     .then(() => {
+      // Rejects the client reference into the item.
+      item.client = client;
+
       // Push events and properties to Link IoT Edge platform.
       return new Promise(() => {
         var properties = {'LightSwitch': item.lightSwitch.isOn ? 1 : 0};

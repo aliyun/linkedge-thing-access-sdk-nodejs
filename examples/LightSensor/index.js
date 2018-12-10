@@ -48,31 +48,40 @@ if (!Array.isArray(configs) || configs.length === 0) {
 var args = configs.map((config) => {
   var self = {
     lightSensor: {
-      // Property
-      illuminance: 100,
+      // Properties.
+      illuminance: 200,
+      delta: 100,
 
-      // Running...
-      run: function () {
-        console.log(`Light sensor start to run...`);
-        var delta = 100;
+      // Start to work.
+      start: function () {
+        console.log('Starting light sensor...');
         setInterval(function () {
-          if (self.lightSensor.illuminance >= 600) {
-            delta = -100;
-          } else if (self.lightSensor.illuminance <= 100) {
-            delta = 100;
+          // Update illuminance and delta.
+          var delta = self.lightSensor.delta;
+          var illuminance = self.lightSensor.illuminance;
+          if (illuminance >= 600 || illuminance <= 100) {
+            delta = -delta;
           }
-          self.lightSensor.illuminance += delta;
-          if (self.client) {
-            try {
-              var properties = {'MeasuredIlluminance': self.lightSensor.illuminance};
-              console.log(`Report properties: ${JSON.stringify(properties)}`);
-              self.client.reportProperties(properties);
-            } catch (err) {
-              console.log(err);
-              self.client.cleanup();
-            }
+          illuminance += delta;
+          self.lightSensor.delta = delta;
+          self.lightSensor.illuminance = illuminance;
+
+          if (self.lightSensor.listener) {
+            self.lightSensor.listener({
+              properties: {
+                illuminance,
+              }
+            });
           }
         }, 2000);
+      },
+
+      listen: function(callback) {
+        if (callback) {
+          self.lightSensor.listener = callback;
+          // Start to work when some one listen to this.
+          self.lightSensor.start();
+        }
       }
     },
     config,
@@ -112,22 +121,29 @@ var args = configs.map((config) => {
       }
     },
   };
-  // Run when loaded.
-  self.lightSensor.run();
   return self;
 });
 
 // Connects to Link IoT Edge platform.
 args.forEach((item) => {
   var client = new ThingAccessClient(item.config, item.callbacks);
-  item.client = client;
   client.setup()
     .then(() => {
       // Initially, try with 1 second retry interval.
       return registerAndOnlineWithBackOffRetry(client, 1);
     })
     .then(() => {
-      // Running...
+      // Rejects the client reference into the item.
+      item.client = client;
+
+      // Running..., listen to sensor, and report to Link IoT Edge.
+      item.lightSensor.listen((data) => {
+        if (data && data.properties && data.properties.illuminance) {
+          var properties = {'MeasuredIlluminance': data.properties.illuminance};
+          console.log(`Report properties: ${JSON.stringify(properties)}`);
+          client.reportProperties(properties);
+        }
+      });
     })
     .catch(err => {
       console.log(err);

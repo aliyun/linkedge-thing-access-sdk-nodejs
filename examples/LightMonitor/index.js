@@ -32,14 +32,14 @@ module.exports.handler = function (event, context, callback) {
 
   console.log(`LightMonitor is invoking with ${event.toString()}.`);
 
-  var illuminance;
+  let illuminance;
   try {
-    var obj = JSON.parse(event.toString());
+    const obj = JSON.parse(event.toString());
     if (!obj.payload) {
       callback(new Error(`Can't find "payload" in event.`));
       return;
     }
-    var payload = JSON.parse(obj.payload);
+    const payload = JSON.parse(obj.payload);
     if (!payload['MeasuredIlluminance']) {
       callback(new Error(`Can't find "MeasuredIlluminance" in event.`));
       return;

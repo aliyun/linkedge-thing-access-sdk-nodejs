@@ -8,13 +8,16 @@ const dbus = require('dbus-native');
 const EventEmitter = require('events');
 
 process.env.FUNCTION_ID = 'functionId';
+process.env.FUNCTION_NAME = 'functionName';
 
 const {
+  getConfig,
   ThingAccessClient
 } = require('../../index');
 
 const {
-  session
+  session,
+  getDriverConfig
 } = require('../../lib/thing-access');
 
 describe('ThingAccessClient', function () {
@@ -98,7 +101,7 @@ describe('ThingAccessClient', function () {
         setTimeout(function () {
           connection.emit('error', new Error('Get connection error.'));
         }, 0);
-        return {connection};
+        return { connection };
       });
       var client = new ThingAccessClient(config, callbacks);
       client.setup().should.be.rejected().then(function () {
@@ -251,10 +254,8 @@ describe('ThingAccessClient', function () {
         productKey: 'Product Key',
         deviceName: config.deviceName,
       }, callbacks);
-      client.setup()
-        .then(function () {
-          return client.getTsl();
-        }).should.be.rejected().then(restore, restore);
+      client.getTsl()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since illegal returned code', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -287,10 +288,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       var client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.getTsl();
-        }).should.be.rejected().then(restore, restore);
+      client.getTsl()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since illegal returned result', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -323,10 +322,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       var client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.getTsl();
-        }).should.be.rejected().then(restore, restore);
+      client.getTsl()
+        .should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -335,10 +332,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       var client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.getTsl();
-        }).should.not.be.rejected().then(restore, restore);
+      client.getTsl()
+        .should.not.be.rejected().then(restore, restore);
     });
   });
   describe('#registerAndOnline', function () {
@@ -360,7 +355,7 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: function (tingInfo, callback) {
+                    connect: function (tingInfo, callback) {
                       callback(new Error('Connection error.'));
                     },
                   });
@@ -380,10 +375,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since undefined result', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -396,7 +389,7 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: function (tingInfo, callback) {
+                    connect: function (tingInfo, callback) {
                       callback(undefined, undefined);
                     },
                   });
@@ -416,10 +409,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since non JSON format result', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -432,7 +423,7 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: function (tingInfo, callback) {
+                    connect: function (tingInfo, callback) {
                       callback(undefined, {});
                     },
                   });
@@ -452,10 +443,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since illegal result code', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -468,7 +457,7 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: function (tingInfo, callback) {
+                    connect: function (tingInfo, callback) {
                       callback(undefined, JSON.stringify({
                         code: 5,
                         message: 'Illegal product key',
@@ -491,10 +480,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since requesting thing service name error', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -517,10 +504,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since starting up thing error', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
@@ -533,8 +518,7 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: fakeRegisterThing,
-                    startupDevice: function (thingInfo, callback) {
+                    connect: function (thingInfo, callback) {
                       callback(undefined, JSON.stringify({
                         code: 5,
                         message: 'Thing id is illegal.',
@@ -557,10 +541,138 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since illegal connect result error is caught', function (done) {
+      var notifyConnectResult;
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: function (iface, objPath, ifaceDesc) {
+            if (iface.connectResultNotify) {
+              notifyConnectResult = iface.connectResultNotify;
+            }
+          },
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
-        }).should.be.rejected().then(restore, restore);
+          notifyConnectResult(undefined);
+        })
+        .should.not.be.rejected().then(restore, restore);
+    });
+    it('should pass since connect result not a JSON error is caught', function (done) {
+      var notifyConnectResult;
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: function (iface, objPath, ifaceDesc) {
+            if (iface.connectResultNotify) {
+              notifyConnectResult = iface.connectResultNotify;
+            }
+          },
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.registerAndOnline()
+        .then(function () {
+          notifyConnectResult('{code":0,"message":"success","params":{"productKey":"Your Product Key","deviceName":"Your Device Name"}}');
+        })
+        .should.not.be.rejected().then(restore, restore);
+    });
+    it('should pass since connect result code not 0 error is caught', function (done) {
+      var notifyConnectResult;
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: function (iface, objPath, ifaceDesc) {
+            if (iface.connectResultNotify) {
+              notifyConnectResult = iface.connectResultNotify;
+            }
+          },
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.registerAndOnline()
+        .then(function () {
+          notifyConnectResult('{"code":1,"message":"Illegal device name."}');
+        })
+        .should.not.be.rejected().then(restore, restore);
+    });
+    it('should pass since connect result no params error is caught', function (done) {
+      var notifyConnectResult;
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: function (iface, objPath, ifaceDesc) {
+            if (iface.connectResultNotify) {
+              notifyConnectResult = iface.connectResultNotify;
+            }
+          },
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.registerAndOnline()
+        .then(function () {
+          notifyConnectResult('{"code":0,"message":"Success."}');
+        })
+        .should.not.be.rejected().then(restore, restore);
+    });
+    it('should pass since connect result is absolutely right', function (done) {
+      var notifyConnectResult;
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: function (iface, objPath, ifaceDesc) {
+            if (iface.connectResultNotify) {
+              notifyConnectResult = iface.connectResultNotify;
+            }
+          },
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      client = new ThingAccessClient(config, callbacks);
+      client.registerAndOnline()
+        .then(function () {
+          notifyConnectResult('{"code":0,"message":"success","params":{"productKey":"Your Product Key","deviceName":"Your Device Name"}}');
+        })
+        .should.not.be.rejected().then(restore, restore);
     });
     it('should pass since invoking get function correctly',function (done) {
       var callServices;
@@ -582,10 +694,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           callServices('get', JSON.stringify({
             params: ['key1', 'key2']
@@ -612,10 +721,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           callServices('set', JSON.stringify({
             params: {
@@ -645,10 +751,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           callServices('turnOn', JSON.stringify({
             params: {
@@ -678,10 +781,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           console.log(getThings('deviceState=online'));
         }).should.not.be.rejected().then(restore, restore);
@@ -706,10 +806,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.offline();
         }).then(function () {
@@ -736,10 +833,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           console.log(getThings());
         }).should.not.be.rejected().then(restore, restore);
@@ -751,10 +845,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        }).should.not.be.rejected().then(restore, restore);
+      client.registerAndOnline()
+        .should.not.be.rejected().then(restore, restore);
     });
   });
   describe('#offline', function () {
@@ -777,9 +869,8 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: fakeRegisterThing,
-                    startupDevice: fakeStartupThing,
-                    shutdownDevice: function (thingInfo, callback) {
+                    connect: fakeConnect,
+                    disconnect: function (thingId, callback) {
                       var result;
                       if (firstCalled) {
                         result = {
@@ -812,10 +903,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.offline();
         }).should.be.rejected().then(restore, restore);
@@ -827,10 +915,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.offline();
-        }).should.be.rejected().then(restore, restore);
+      client.offline()
+        .should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -839,10 +925,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.offline();
         }).should.not.be.rejected().then(restore, restore);
@@ -866,10 +949,8 @@ describe('ThingAccessClient', function () {
                         message: 'Illegal module name error.',
                       }));
                     },
-                    registerDevice: fakeRegisterThing,
-                    unregisterDevice: fakeUnregisterThing,
-                    startupDevice: fakeStartupThing,
-                    shutdownDevice: fakeShutdownThing,
+                    connect: fakeConnect,
+                    disconnect: fakeDisconnect,
                     registerDriver: fakeRegisterModule,
                   });
                 }
@@ -889,10 +970,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       var client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.offline();
         })
@@ -907,10 +985,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       var client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.offline();
         }).then(function () {
@@ -950,15 +1025,9 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
-        })
-        .catch(function (err) {
-          console.log(err);
-          throw err;
-        }).then(function () {
-          client.reportEvent('high_temperature', {temperature: 41});
+          return client.reportEvent('high_temperature', {temperature: 41});
         }).should.be.rejected()
         .then(function () {
           return client.offline();
@@ -972,12 +1041,9 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
-        })
-        .then(function () {
-          client.reportEvent(undefined, {temperature: 41});
+          return client.reportEvent(undefined, {temperature: 41});
         }).should.be.rejected()
         .then(function () {
           return client.offline();
@@ -991,10 +1057,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          client.reportEvent('high_temperature', {temperature: 41});
-        }).should.be.rejected().then(restore, restore);
+      client.reportEvent('high_temperature', {temperature: 41})
+        .should.be.rejected().then(restore, restore);
     });
     it('should fail since thing is unregistered', function(done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
@@ -1003,15 +1067,12 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.unregister();
         })
         .then(function () {
-          client.reportEvent('high_temperature', {temperature: 41});
+          return client.reportEvent('high_temperature', {temperature: 41});
         }).should.be.rejected()
         .then(function () {
           return client.offline();
@@ -1024,15 +1085,12 @@ describe('ThingAccessClient', function () {
       done();
     }
     client = new ThingAccessClient(config, callbacks);
-    client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+    client.registerAndOnline()
         .then(function () {
           return client.offline();
         })
       .then(function () {
-        client.reportEvent('high_temperature', {temperature: 41});
+        return client.reportEvent('high_temperature', {temperature: 41});
       }).should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
@@ -1042,12 +1100,9 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
-        })
-        .then(function () {
-          client.reportEvent('high_temperature', {temperature: 41});
+          return client.reportEvent('high_temperature', {temperature: 41});
         }).should.not.be.rejected().then(restore, restore);
     });
   });
@@ -1083,12 +1138,9 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
-        })
-        .then(function () {
-          client.reportProperties({
+          return client.reportProperties({
             'temperature': 41,
           });
         }).should.be.rejected()
@@ -1104,11 +1156,8 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-        client.reportProperties({
-          'temperature': 41,
-        });
+      client.reportProperties({
+        'temperature': 41,
       }).should.be.rejected().then(restore, restore);
     });
     it('should fail since thing is unregistered', function(done) {
@@ -1118,15 +1167,12 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.unregister();
         })
         .then(function () {
-        client.reportProperties({
+        return client.reportProperties({
           'temperature': 41,
         });
       }).should.be.rejected().then(restore, restore);
@@ -1138,15 +1184,12 @@ describe('ThingAccessClient', function () {
       done();
     }
     client = new ThingAccessClient(config, callbacks);
-    client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+    client.registerAndOnline()
         .then(function () {
           return client.offline();
         })
       .then(function () {
-        client.reportProperties({
+        return client.reportProperties({
           'temperature': 41,
         });
       }).should.be.rejected().then(restore, restore);
@@ -1158,15 +1201,12 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
+      client.registerAndOnline()
         .then(function () {
-          return client.registerAndOnline();
+          return client.reportEvent('high_temperature', {temperature: 41});
         })
         .then(function () {
-          client.reportEvent('high_temperature', {temperature: 41});
-        })
-        .then(function () {
-          client.reportProperties({
+          return client.reportProperties({
             'temperature': 42,
           });
         }).should.not.be.rejected()
@@ -1200,15 +1240,14 @@ describe('ThingAccessClient', function () {
                   callback(undefined, {
                     registerDriver: fakeRegisterModule,
                     unregisterDriver: fakeUnregisterModule,
-                    registerDevice: fakeRegisterThing,
+                    connect: fakeConnect,
+                    disconnect: fakeDisconnect,
                     unregisterDevice: function (info, callback) {
                       callback(undefined, JSON.stringify({
                         code: 5,
                         message: 'Illegal thing id.',
                       }));
                     },
-                    startupDevice: fakeStartupThing,
-                    shutdownDevice: fakeShutdownThing,
                   });
                 }
               };
@@ -1226,10 +1265,7 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.unregister();
         }).should.be.rejected().then(restore, restore);
@@ -1241,126 +1277,250 @@ describe('ThingAccessClient', function () {
         done();
       }
       client = new ThingAccessClient(config, callbacks);
-      client.setup()
-        .then(function () {
-          return client.registerAndOnline();
-        })
+      client.registerAndOnline()
         .then(function () {
           return client.unregister();
         }).should.not.be.rejected().then(restore, restore);
     });
   });
-
-  function fakeCreateConnection() {
-    var connection = new EventEmitter();
-    connection.end = function () {};
-    connection.message = function () {};
-    setTimeout(function () {
-      connection.emit('connect');
-    }, 0);
-    return connection;
-  }
-
-  function fakeRegisterModule(info, callback) {
-    callback(null, JSON.stringify({
-      code: 0,
-      message: 'success'
-    }));
-  }
-
-  function fakeUnregisterModule(infos, callback) {
-    callback(undefined, JSON.stringify({
-      code: 0,
-      message: 'success',
-    }));
-  }
-
-  function fakeRegisterThing(thingInfo, callback) {
-    callback(undefined, JSON.stringify({
-      code: 0,
-      message: 'success',
-      params: {
-        deviceCloudId: '627a0cdad79975',
-      },
-    }));
-  }
-
-  function fakeUnregisterThing(thingInfo, callback) {
-    callback(undefined, JSON.stringify({
-      code: 0,
-      message: 'success',
-    }));
-  }
-
-  function fakeStartupThing(thingId, callback) {
-    callback(undefined, JSON.stringify({
-      code: 0,
-      message: 'success',
-    }));
-  }
-
-  function fakeShutdownThing(thingId, callback) {
-    callback(undefined, JSON.stringify({
-      code: 0,
-      message: 'success',
-    }));
-  }
-
-  function fakeRequestName(name, flags, callback) {
-    callback(undefined, 1);
-  }
-
-  function fakeReleaseName(name, flags, callback) {
-    callback(undefined);
-  }
-
-  function fakeExportInterface() {
-
-  }
-
-  function fakeGetConfig(productKey, callback) {
-    callback(null, 0, JSON.stringify({}));
-  }
-
-  function fakeGetService(serviceName) {
-    if (serviceName === 'iot.dmp.dimu') {
-      return fakeDimuService;
-    } else if (serviceName === 'iot.dmp.configmanager') {
-      return fakeConfigService;
-    }
-  }
-
-  function fakeCreateClient() {
-    return {
-      connection: fakeCreateConnection(),
-      getService: fakeGetService,
-      requestName: fakeRequestName,
-      releaseName: fakeReleaseName,
-      exportInterface: fakeExportInterface,
-    };
-  }
-
-  var fakeConfigInterface = {
-    get_config: fakeGetConfig,
-  };
-  var fakeConfigService = {
-    getInterface: function (objName, ifaceName, callback) {
-      callback(undefined, fakeConfigInterface);
-    }
-  };
-
-  var fakeDimuInterface = {
-    registerDriver: fakeRegisterModule,
-    unregisterDriver: fakeUnregisterModule,
-    registerDevice: fakeRegisterThing,
-    unregisterDevice: fakeUnregisterThing,
-    startupDevice: fakeStartupThing,
-    shutdownDevice: fakeShutdownThing,
-  };
-
-  var fakeDimuService = {
-    getInterface: function (objName, ifaceName, callback) {
-      callback(undefined, fakeDimuInterface);
-    }
-  };
 });
+
+describe('ThingAccess', function () {
+  describe('#getDriverConfig', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    it('should fail since illegal product key', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (productKey, callback) {
+                      if (productKey === config.productKey) {
+                        callback(undefined, 0, JSON.stringify({}));
+                      } else {
+                        callback(new Error('Illegal product key.'));
+                      }
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      getDriverConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since illegal returned code', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (productKey, callback) {
+                      if (productKey) {
+                        callback(undefined, 5, undefined);
+                      }
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      getDriverConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since illegal returned result', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (productKey, callback) {
+                      if (productKey) {
+                        callback(undefined, 0, {});
+                      }
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      getDriverConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      getDriverConfig()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+
+  describe('#getConfig', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+
+      function restore() {
+        stub.restore();
+        done();
+      }
+
+      getConfig()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+});
+
+function fakeCreateConnection() {
+  var connection = new EventEmitter();
+  connection.end = function () {};
+  connection.message = function () {};
+  setTimeout(function () {
+    connection.emit('connect');
+  }, 0);
+  return connection;
+}
+
+function fakeRegisterModule(info, callback) {
+  callback(null, JSON.stringify({
+    code: 0,
+    message: 'success'
+  }));
+}
+
+function fakeUnregisterModule(infos, callback) {
+  callback(undefined, JSON.stringify({
+    code: 0,
+    message: 'success',
+  }));
+}
+
+function fakeUnregisterThing(thingId, callback) {
+  callback(undefined, JSON.stringify({
+    code: 0,
+    message: 'success',
+  }));
+}
+
+function fakeConnect(thingInfo, callback) {
+  callback(undefined, JSON.stringify({
+    code: 0,
+    message: 'success',
+    params: {
+      deviceCloudId: '627a0cdad79975',
+    },
+  }));
+}
+
+function fakeDisconnect(thingId, callback) {
+  callback(undefined, JSON.stringify({
+    code: 0,
+    message: 'success',
+  }));
+}
+
+function fakeRequestName(name, flags, callback) {
+  callback(undefined, 1);
+}
+
+function fakeReleaseName(name, callback) {
+  callback(undefined);
+}
+
+function fakeExportInterface() {
+
+}
+
+function fakeGetConfig(productKey, callback) {
+  callback(null, 0, JSON.stringify({}));
+}
+
+function fakeGetService(serviceName) {
+  if (serviceName === 'iot.dmp.dimu') {
+    return fakeDimuService;
+  } else if (serviceName === 'iot.dmp.configmanager') {
+    return fakeConfigService;
+  }
+}
+
+function fakeCreateClient() {
+  return {
+    connection: fakeCreateConnection(),
+    getService: fakeGetService,
+    requestName: fakeRequestName,
+    releaseName: fakeReleaseName,
+    exportInterface: fakeExportInterface,
+  };
+}
+
+var fakeConfigInterface = {
+  get_config: fakeGetConfig,
+};
+var fakeConfigService = {
+  getInterface: function (objName, ifaceName, callback) {
+    callback(undefined, fakeConfigInterface);
+  }
+};
+
+var fakeDimuInterface = {
+  registerDriver: fakeRegisterModule,
+  unregisterDriver: fakeUnregisterModule,
+  unregisterDevice: fakeUnregisterThing,
+  connect: fakeConnect,
+  disconnect: fakeDisconnect,
+};
+
+var fakeDimuService = {
+  getInterface: function (objName, ifaceName, callback) {
+    callback(undefined, fakeDimuInterface);
+  }
+};

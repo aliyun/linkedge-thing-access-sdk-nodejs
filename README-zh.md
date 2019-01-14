@@ -112,6 +112,9 @@ npm run generate-docs
 
 主要的API参考文档如下：
 
+* **[getConfig()](#getconfig)**
+* Config#**[getThings()](#getthings)**
+* **[Thing](#thing)**
 * **[ThingAccessClient()](#thingaccessclient)**
 * ThingAccessClient#**[setup()](#setup)**
 * ThingAccessClient#**[registerAndOnline()](#registerandonline)**
@@ -122,6 +125,28 @@ npm run generate-docs
 * ThingAccessClient#**[reportProperties()](#reportproperties)**
 * ThingAccessClient#**[cleanup()](#cleanup)**
 * ThingAccessClient#**[unregister()](#unregister)**
+
+---
+<a name="getconfig"></a>
+### getConfig()
+返回相关的配置[Config](#config)，该配置通常在设备与此驱动程序关联是由系统自动生成。
+
+返回`Promise.<Config>`.
+
+---
+<a name="getthings"></a>
+### Config.getThings()
+返回所有的关联的Thing信息。
+
+返回 `Array<Thing>`.
+
+---
+<a name="thing"></a>
+### Thing
+Thing元信息类，包含:
+* `productKey`: 设备product key。
+* `deviceName`: 设备device name。
+* `custom`: 设备自定义配置。
 
 ---
 <a name="thingaccessclient"></a>

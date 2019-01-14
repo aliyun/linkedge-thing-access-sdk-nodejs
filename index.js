@@ -16,6 +16,8 @@
 
 'use strict';
 
+const Thing = require('./lib/thing');
+const Config = require('./lib/config');
 const ThingAccess = require('./lib/thing-access');
 
 /**
@@ -84,7 +86,7 @@ const RESULT_SUCCESS = 0;
  */
 const RESULT_FAILURE = -3;
 
-// Error no.
+// Error no. for callbacks.
 const ERROR_PROPERTY_NOT_EXIST = 109002;
 const ERROR_PROPERTY_READ_ONLY = 109003;
 const ERROR_PROPERTY_WRITE_ONLY = 109004;
@@ -99,14 +101,72 @@ const ERROR_PARAM_RANGE_OVERFLOW = 100007;
 const ERROR_SERVICE_UNREACHABLE = 100008;
 const ERROR_FILE_NOT_EXIST = 100009;
 
+// Errors
 /**
- * A wrapper client of APIs for connecting things to Link IoT Edge platform and interactions
+ * Code for errors thrown during setting up.
+ *
+ * @type {String}
+ */
+const ERROR_SETUP = ThingAccess.ERROR_SETUP;
+/**
+ * Code for errors thrown during cleaning up.
+ *
+ * @type {String}
+ */
+const ERROR_CLEANUP = ThingAccess.ERROR_CLEANUP;
+/**
+ * Code for errors thrown during connecting.
+ *
+ * @type {String}
+ */
+const ERROR_CONNECT = ThingAccess.ERROR_CONNECT;
+/**
+ * Code for errors thrown during disconnecting.
+ *
+ * @type {String}
+ */
+const ERROR_DISCONNECT = ThingAccess.ERROR_DISCONNECT;
+/**
+ * Code for errors thrown during getting TSL.
+ *
+ * @type {String}
+ */
+const ERROR_GET_TSL = ThingAccess.ERROR_GET_TSL;
+
+/**
+ * Code for errors thrown during getting custom config.
+ *
+ * @type {String}
+ */
+const ERROR_GET_CONFIG = ThingAccess.ERROR_GET_CONFIG;
+/**
+ * Code for errors thrown during unregistering.
+ *
+ * @type {String}
+ */
+const ERROR_UNREGISTER = ThingAccess.ERROR_UNREGISTER;
+
+/**
+ * Returns the associated {@link Config}.
+ *
+ * @returns {Promise<Config>}
+ */
+function getConfig() {
+  return new Promise((resolve) => {
+    resolve(ThingAccess.getDriverConfig())
+  }).then((config) => {
+    return new Config(config);
+  });
+}
+
+/**
+ * A wrapper client of APIs for connecting things to Link IoT Edge and interactions
  * between them.
  * <p>
  * The most common use is as follows:
  * <pre>
- *   const callbacks = {
-      setProperties: function (properties) {
+ *  const callbacks = {
+      setProperties: function(properties) {
         // Set properties to the physical thing and return the result.
         // Return an object representing the result or the promise wrapper of the object.
         return {
@@ -114,7 +174,7 @@ const ERROR_FILE_NOT_EXIST = 100009;
           message: 'success';
         };
       },
-      getProperties: function (keys) {
+      getProperties: function(keys) {
         // Get properties from the physical thing and return the result.
         // Return an object representing the result or the promise wrapper of the object.
         return {
@@ -122,7 +182,7 @@ const ERROR_FILE_NOT_EXIST = 100009;
           message: 'success';
         };
       },
-      callService: function (name, args) {
+      callService: function(name, args) {
         // Call services on the physical thing and return the result.
         // Return an object representing the result or the promise wrapper of the object.
         return {
@@ -131,36 +191,29 @@ const ERROR_FILE_NOT_EXIST = 100009;
         };
       }
     };
-    var driverConfig;
-    try {
-      driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
-    } catch (err) {
-    throw new Error('The driver config is not in JSON format!');
-    }
-    var configs = driverConfig['deviceList'];
-    if (!Array.isArray(configs) || configs.length === 0) {
-      throw new Error('No device is bound with the driver!');
-    }
-    const client = new ThingAccessClient(config, callbacks);
-    client.setup()
-      .then(() => {
-        return client.registerAndOnline();
-      })
-      .then(() => {
-        return new Promise(() => {
-          setInterval(() => {
-            client.reportEvent('high_temperature', {temperature: 41});
-            client.reportProperties({'temperature': 41});
-          }, 2000);
+    getConfig()
+      .then(config => {
+        const things = config.getThings();
+        things.forEach(thing => {
+          const client = new ThingAccessClient(thing, callbacks);
+          client.registerAndOnline()
+            .then(() => {
+              return new Promise(() => {
+                setInterval(() => {
+                  client.reportEvent('high_temperature', { temperature: 41 });
+                  client.reportProperties({ 'temperature': 41 });
+                }, 2000);
+              });
+            })
+            .catch(err => {
+              console.log(err);
+              client.cleanup();
+            });
+            .catch(err => {
+              console.log(err);
+            });
+          });
         });
-      })
-      .catch(err => {
-        console.log(err);
-        client.cleanup();
-      });
-      .catch(err => {
-        console.log(err);
-      });
  * </pre>
  */
 class ThingAccessClient {
@@ -170,7 +223,7 @@ class ThingAccessClient {
    * <code>callbacks</code>.
    *
    * @param {Object} config the meta data config about the client.
-   * @param {Object} callbacks callback functions responding to the requests from Link IoT Edge platform.
+   * @param {Object} callbacks callback functions responding to the requests from Link IoT Edge.
    */
   constructor(config, callbacks) {
     if (!callbacks || !callbacks.getProperties || !callbacks.setProperties
@@ -184,7 +237,10 @@ class ThingAccessClient {
   }
 
   /**
-   * Performs common constructor initialization and setup operations.
+   * Performs common initialization and setup operations.
+   *
+   * @deprecated It's no need to call this method any more since it is called prior to
+   * any other methods automatically.
    *
    * @returns {Promise<Void>}
    */
@@ -193,54 +249,77 @@ class ThingAccessClient {
   }
 
   /**
-   * Registers thing to Link IoT Edge platform and informs it that thing is connected.
+   * Registers thing to Link IoT Edge and informs it that thing is connected.
    * When register, {@link DEVICE_NAME} will be used first if it exists, or
    * {@link LOCAL_NAME} is used.
    *
    * @returns {Promise<Void>}
    */
   registerAndOnline() {
-    return this.impl.register()
-      .then(() => {
-        return this.impl.connect();
-      });
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.online();
+    });
   }
 
   /**
-   * Reports a event to Link IoT Edge platform.
+   * Reports a event to Link IoT Edge.
    *
    * @param {String} eventName the name of the event.
    * @param {Object} args the parameters attached to the event.
+   *
+   * @returns {Promise<Boolean>} Returns true if the event has been posted to the
+   *                              underlying message queue, or false.
    */
   reportEvent(eventName, args) {
-    this.impl.signalEvent(eventName, args);
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      this.impl.signalEvent(eventName, args);
+    });
   }
 
   /**
-   * Reports new property values to Link IoT Edge platform.
+   * Reports new property values to Link IoT Edge.
    *
    * @param {Object} properties the new properties.
+   *
+   * @returns {Promise<Boolean>} Returns true if the event has been posted to the
+   *                              underlying message queue, or false.
    */
   reportProperties(properties) {
-    this.impl.signalProperties(properties);
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      this.impl.signalProperties(properties);
+    });
   }
 
   /**
-   * Informs Link IoT Edge platform that thing is connected.
+   * Informs Link IoT Edge that thing is connected.
    *
    * @returns {Promise<Void>}
    */
   online() {
-    return this.impl.connect();
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.impl.connect();
+    });
   }
 
   /**
-   * Informs Link IoT Edge platform that thing is disconnected.
+   * Informs Link IoT Edge that thing is disconnected.
    *
    * @returns {Promise<Void>}
    */
   offline() {
-    return this.impl.disconnect();
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.impl.disconnect();
+    });
   }
 
   /**
@@ -249,7 +328,11 @@ class ThingAccessClient {
    * @returns {Promise<String>}
    */
   getTsl() {
-    return this.impl.getTsl();
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.impl.getTsl();
+    });
   }
 
   /**
@@ -258,21 +341,32 @@ class ThingAccessClient {
    * @returns {Promise<Void>}
    */
   cleanup() {
-    return this.impl.cleanup();
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.impl.cleanup();
+    });
   }
 
   /**
-   * Removes the binding relationship between thing and Link IoT Edge platform. You
+   * Removes the binding relationship between thing and Link IoT Edge. You
    * usually don't call this function.
    *
    * @returns {Promise<Void>}
    */
   unregister() {
-    return this.impl.unregister();
+    return new Promise((resolve) => {
+      resolve(this.setup());
+    }).then(() => {
+      return this.impl.unregister();
+    });
   }
 }
 
 module.exports = {
+  // Used for callbacks
+  RESULT_SUCCESS,
+  RESULT_FAILURE,
   ERROR_PROPERTY_NOT_EXIST,
   ERROR_PROPERTY_READ_ONLY,
   ERROR_PROPERTY_WRITE_ONLY,
@@ -285,13 +379,23 @@ module.exports = {
   ERROR_PARAM_RANGE_OVERFLOW,
   ERROR_SERVICE_UNREACHABLE,
   ERROR_FILE_NOT_EXIST,
-  PRODUCT_KEY,
-  DEVICE_NAME,
-  LOCAL_NAME,
   SET_PROPERTIES,
   GET_PROPERTIES,
   CALL_SERVICE,
-  RESULT_SUCCESS,
-  RESULT_FAILURE,
+  // Used for errors
+  ERROR_SETUP,
+  ERROR_CLEANUP,
+  ERROR_CONNECT,
+  ERROR_DISCONNECT,
+  ERROR_GET_TSL,
+  ERROR_GET_CONFIG,
+  ERROR_UNREGISTER,
+  // Used for configs
+  PRODUCT_KEY,
+  DEVICE_NAME,
+  LOCAL_NAME,
+  getConfig,
+  Config,
+  Thing,
   ThingAccessClient,
 };

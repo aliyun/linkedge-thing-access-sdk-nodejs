@@ -4,7 +4,9 @@
   },
   "source": {
     "include": [
-      "index.js"
+      "index.js",
+      "lib/config.js",
+      "lib/thing-info.js"
       ],
     "includePattern": ".+\\.js(doc|x)?$",
     "excludePattern": "(^|\\/|\\\\)_"

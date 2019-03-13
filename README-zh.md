@@ -30,25 +30,14 @@ npm install linkedge-thing-access-sdk
 然后，实现设备接入。最常用的使用方式如下：
 ```
 const {
+  Config,
   ThingAccessClient
 } = require('linkedge-thing-access-sdk');
 
-// Parse driver config to get connection info.
-var driverConfig;
-try {
-  driverConfig = JSON.parse(process.env.FC_DRIVER_CONFIG)
-} catch (err) {
-  throw new Error('The driver config is not in JSON format!');
-}
-var configs = driverConfig['deviceList'];
-if (!Array.isArray(configs) || configs.length === 0) {
-  throw new Error('No device is bound with the driver!');
-}
-
 const callbacks = {
   setProperties: function (properties) {
-    // Set properties to thing and return the result.
-    // Return a object result or a promise of it. Throw the error if one raises.
+    // Set properties to the physical thing and return the result.
+    // Return an object representing the result or the promise wrapper of the object.
     return {
       code: 0,
       message: 'success',
@@ -56,8 +45,8 @@ const callbacks = {
     };
   },
   getProperties: function (keys) {
-    // Get properties from thing and return them.
-    // Return a object result or a promise of it. Throw the error if one raises.
+    // Get properties from the physical thing and return the result.
+    // Return an object representing the result or the promise wrapper of the object.
     return {
       code: 0,
       message: 'success',
@@ -68,8 +57,8 @@ const callbacks = {
     };
   },
   callService: function (name, args) {
-    // Call services on thing and return the result.
-    // Return a object result or a promise of it. Throw the error if one raises.
+    // Call services on the physical thing and return the result.
+    // Return an object representing the result or the promise wrapper of the object.
     return new Promise((resolve) => {
       resolve({
         code: 0,
@@ -78,27 +67,28 @@ const callbacks = {
     });
   }
 };
-
-var client = new ThingAccessClient(config, callbacks);
-client.setup()
-  .then(() => {
-    return client.registerAndOnline();
-  })
-  .then(() => {
-    // Push events and properties to Link IoT Edge platform.
-    return new Promise((resolve) => {
-      setInterval(() => {
-        client.reportEvent('high_temperature', {temperature: 41});
-        client.reportProperties({'temperature': 41});
-      }, 2000);
+Config.get()
+  .then(config => {
+    const thingInfos = config.getThingInfos();
+    thingInfos.forEach(thingInfo => {
+      const client = new ThingAccessClient(thingInfo, callbacks);
+      client.registerAndOnline()
+        .then(() => {
+          return new Promise(() => {
+            setInterval(() => {
+              client.reportEvent('high_temperature', { temperature: 41 });
+              client.reportProperties({ 'temperature': 41 });
+            }, 2000);
+          });
+        })
+        .catch(err => {
+          console.log(err);
+          client.cleanup();
+        });
+        .catch(err => {
+          console.log(err);
+        });
     });
-  })
-  .catch(err => {
-    client.cleanup();
-    console.log(err);
-  });
-  .catch(err => {
-    console.log(err);
   });
 ```
 
@@ -113,8 +103,10 @@ npm run generate-docs
 主要的API参考文档如下：
 
 * **[getConfig()](#getconfig)**
-* Config#**[getThings()](#getthings)**
-* **[Thing](#thing)**
+* Config#**[getThingInfos()](#getthinginfos)**
+* Config#**[registerChangedCallback()](#registerchangedcallback)**
+* Config#**[unregisterChangedCallback()](#unregisterchangedcallback)**
+* **[ThingInfo](#thinginfo)**
 * **[ThingAccessClient()](#thingaccessclient)**
 * ThingAccessClient#**[setup()](#setup)**
 * ThingAccessClient#**[registerAndOnline()](#registerandonline)**
@@ -129,21 +121,35 @@ npm run generate-docs
 ---
 <a name="getconfig"></a>
 ### getConfig()
-返回相关的配置[Config](#config)，该配置通常在设备与此驱动程序关联是由系统自动生成。
+返回相关的配置字符串，该配置通常在设备与此驱动程序关联是由系统自动生成。
 
-返回`Promise.<Config>`.
+返回`Promise<String>`.
 
 ---
-<a name="getthings"></a>
-### Config.getThings()
+<a name="getthinginfos"></a>
+### Config.getThingInfos()
 返回所有的关联的Thing信息。
 
-返回 `Array<Thing>`.
+返回 `Array<ThingInfo>`.
 
 ---
-<a name="thing"></a>
-### Thing
-Thing元信息类，包含:
+<a name="registerchangedcallback"></a>
+### Config.registerchangedcallback(callback)
+注册配置变更回调函数.
+
+* `callback(configString)`: 回调函数，配置发生变更时回调.
+
+---
+<a name="unregisterchangedcallback"></a>
+### Config.unregisterchangedcallback(callback)
+注销配置变更回调函数.
+
+* `callback(configString)`: 回调函数，配置发生变更时回调.
+
+---
+<a name="thinginfo"></a>
+### ThingInfo
+Thing信息类，包含:
 * `productKey`: 设备product key。
 * `deviceName`: 设备device name。
 * `custom`: 设备自定义配置。
@@ -161,7 +167,7 @@ Thing元信息类，包含:
 
 <a name="setup"></a>
 ### ThingAccessClient.setup()
-执行通用的初始化操作。
+(已废弃) 执行通用的初始化操作。
 
 返回`Promise<Void>`。
 

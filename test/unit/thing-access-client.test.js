@@ -11,16 +11,28 @@ process.env.FUNCTION_ID = 'functionId';
 process.env.FUNCTION_NAME = 'functionName';
 
 const {
-  getConfig,
-  ThingAccessClient
-} = require('../../index');
-
-const {
   session,
-  getDriverConfig
+  DriverConfigManager,
 } = require('../../lib/thing-access');
 
+// Outermost describe
+describe('', function () {
+  var listenChanges;
+  var index;
+  before(function () {
+    listenChanges = sinon.stub(DriverConfigManager.get(), 'listenChanges').resolves();
+    index = require('../../index');
+  });
+  after(function () {
+    listenChanges.restore();
+    index.destroy();
+  });
+
 describe('ThingAccessClient', function () {
+  const {
+    ThingAccessClient
+  } = require('../../index');
+
   var config = {
     productKey: 'Your Product Key',
     deviceName: 'Your Device Name',
@@ -762,7 +774,7 @@ describe('ThingAccessClient', function () {
         }).should.not.be.rejected().then(restore, restore);
     });
     it('should pass since get connected things correctly',function (done) {
-      var getThings;
+      var getThingInfos;
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -771,7 +783,7 @@ describe('ThingAccessClient', function () {
           releaseName: fakeReleaseName,
           exportInterface: function (iface, objPath, ifaceDesc) {
             if (iface.getDeviceList) {
-              getThings = iface.getDeviceList;
+              getThingInfos = iface.getDeviceList;
             }
           },
         };
@@ -783,11 +795,11 @@ describe('ThingAccessClient', function () {
       client = new ThingAccessClient(config, callbacks);
       client.registerAndOnline()
         .then(function () {
-          console.log(getThings('deviceState=online'));
+          console.log(getThingInfos('deviceState=online'));
         }).should.not.be.rejected().then(restore, restore);
     });
     it('should pass since get disconnected things correctly',function (done) {
-      var getThings;
+      var getThingInfos;
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -796,7 +808,7 @@ describe('ThingAccessClient', function () {
           releaseName: fakeReleaseName,
           exportInterface: function (iface, objPath, ifaceDesc) {
             if (iface.getDeviceList) {
-              getThings = iface.getDeviceList;
+              getThingInfos = iface.getDeviceList;
             }
           },
         };
@@ -810,11 +822,11 @@ describe('ThingAccessClient', function () {
         .then(function () {
           return client.offline();
         }).then(function () {
-          console.log(getThings('deviceState=offline'));
+          console.log(getThingInfos('deviceState=offline'));
         }).should.not.be.rejected().then(restore, restore);
     });
     it('should pass since get all things correctly',function (done) {
-      var getThings;
+      var getThingInfos;
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -823,7 +835,7 @@ describe('ThingAccessClient', function () {
           releaseName: fakeReleaseName,
           exportInterface: function (iface, objPath, ifaceDesc) {
             if (iface.getDeviceList) {
-              getThings = iface.getDeviceList;
+              getThingInfos = iface.getDeviceList;
             }
           },
         };
@@ -835,7 +847,7 @@ describe('ThingAccessClient', function () {
       client = new ThingAccessClient(config, callbacks);
       client.registerAndOnline()
         .then(function () {
-          console.log(getThings());
+          console.log(getThingInfos());
         }).should.not.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet',function (done) {
@@ -1285,8 +1297,8 @@ describe('ThingAccessClient', function () {
   });
 });
 
-describe('ThingAccess', function () {
-  describe('#getDriverConfig', function () {
+describe('DriverConfigManager', function () {
+  describe('#getConfig', function () {
     afterEach(function () {
       session._reset();
     });
@@ -1322,7 +1334,7 @@ describe('ThingAccess', function () {
         stub.restore();
         done();
       }
-      getDriverConfig()
+      DriverConfigManager.get().getConfig()
         .should.be.rejected().then(restore, restore);
     });
     it('should fail since illegal returned code', function(done) {
@@ -1355,7 +1367,7 @@ describe('ThingAccess', function () {
         stub.restore();
         done();
       }
-      getDriverConfig()
+      DriverConfigManager.get().getConfig()
         .should.be.rejected().then(restore, restore);
     });
     it('should fail since illegal returned result', function (done) {
@@ -1388,7 +1400,7 @@ describe('ThingAccess', function () {
         stub.restore();
         done();
       }
-      getDriverConfig()
+      DriverConfigManager.get().getConfig()
         .should.be.rejected().then(restore, restore);
     });
     it('should pass since all requirements meet', function(done) {
@@ -1397,24 +1409,7 @@ describe('ThingAccess', function () {
         stub.restore();
         done();
       }
-      getDriverConfig()
-        .should.not.be.rejected().then(restore, restore);
-    });
-  });
-
-  describe('#getConfig', function () {
-    afterEach(function () {
-      session._reset();
-    });
-    it('should pass since all requirements meet', function (done) {
-      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
-
-      function restore() {
-        stub.restore();
-        done();
-      }
-
-      getConfig()
+      DriverConfigManager.get().getConfig()
         .should.not.be.rejected().then(restore, restore);
     });
   });
@@ -1524,3 +1519,5 @@ var fakeDimuService = {
     callback(undefined, fakeDimuInterface);
   }
 };
+
+}); // Outermost describe

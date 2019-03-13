@@ -20,7 +20,7 @@ const {
   RESULT_SUCCESS,
   RESULT_FAILURE,
   ThingAccessClient,
-  getConfig,
+  Config,
 } = require('linkedge-thing-access-sdk');
 
 /**
@@ -54,7 +54,7 @@ class Connector {
    * Connects to Link IoT Edge and publishes properties and events to it.
    */
   connect() {
-    this._client.registerAndOnline()
+    return this._client.registerAndOnline()
       .then(() => {
         return new Promise(() => {
           // Publish properties and events to Link IoT Edge.
@@ -77,7 +77,7 @@ class Connector {
     if (this._clearInterval) {
       this._clearInterval();
     }
-    this._client.cleanup()
+    return this._client.cleanup()
       .catch(err => {
         console.log(err);
       });
@@ -157,15 +157,15 @@ class Connector {
 }
 
 // Get the config which is auto-generated when devices are bound to this driver.
-getConfig()
+Config.get()
   .then((config) => {
     // Get the device information from config, which contains product key, device
     // name, etc. of the device.
-    const things = config.getThings();
-    things.forEach((thing) => {
+    const thingInfos = config.getThingInfos();
+    thingInfos.forEach((thingInfo) => {
       const thermometer = new Thermometer();
       // The Thing format is just right for connector config, pass it directly.
-      const connector = new Connector(thing, thermometer);
+      const connector = new Connector(thingInfo, thermometer);
       connector.connect();
     });
   });

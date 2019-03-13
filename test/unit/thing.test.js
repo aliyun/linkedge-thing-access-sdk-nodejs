@@ -21,9 +21,9 @@ const should = require('should');
 process.env.FUNCTION_ID = 'functionId';
 process.env.FUNCTION_NAME = 'functionName';
 
-const { Thing } = require('../../index');
+const { ThingInfo } = require('../../index');
 
-describe('Thing', function () {
+describe('ThingInfo', function () {
   const global = {
     productKey: 'Your Product Key',
     deviceName: 'Your Device Name',
@@ -33,25 +33,25 @@ describe('Thing', function () {
     it('should fail since illegal product key config', function () {
       const config = Object.assign({}, global, { productKey: undefined });
       (function () {
-        Thing.from(config)
+        ThingInfo.from(config)
       }).should.throw();
     });
     it('should fail since illegal device name config', function () {
       const config = Object.assign({}, global, { deviceName: undefined });
       (function () {
-        Thing.from(config)
+        ThingInfo.from(config)
       }).should.throw();
     });
     it('should pass since empty custom config', function () {
       const config = Object.assign({}, global, { custom: undefined });
       (function () {
-        Thing.from(config)
+        ThingInfo.from(config)
       }).should.not.throw();
     });
     it('should pass since all requirements meet', function () {
       const config = Object.assign({}, global);
       (function () {
-        Thing.from(config)
+        ThingInfo.from(config)
       }).should.not.throw();
     });
   });

@@ -16,9 +16,13 @@
 
 'use strict';
 
-const Thing = require('./lib/thing');
+const ThingInfo = require('./lib/thing-info');
 const Config = require('./lib/config');
-const ThingAccess = require('./lib/thing-access');
+const {
+  session,
+  ThingAccess,
+  DriverConfigManager,
+} = require('./lib/thing-access');
 
 /**
  * Key for specifying product key in <i>config</i> that passed to {@link ThingAccessClient}
@@ -103,59 +107,70 @@ const ERROR_FILE_NOT_EXIST = 100009;
 
 // Errors
 /**
- * Code for errors thrown during setting up.
+ * Code for the error thrown during setting up.
  *
  * @type {String}
  */
 const ERROR_SETUP = ThingAccess.ERROR_SETUP;
 /**
- * Code for errors thrown during cleaning up.
+ * Code for the error thrown during cleaning up.
  *
  * @type {String}
  */
 const ERROR_CLEANUP = ThingAccess.ERROR_CLEANUP;
 /**
- * Code for errors thrown during connecting.
+ * Code for the error thrown during connecting.
  *
  * @type {String}
  */
 const ERROR_CONNECT = ThingAccess.ERROR_CONNECT;
 /**
- * Code for errors thrown during disconnecting.
+ * Code for the error thrown during disconnecting.
  *
  * @type {String}
  */
 const ERROR_DISCONNECT = ThingAccess.ERROR_DISCONNECT;
 /**
- * Code for errors thrown during getting TSL.
+ * Code for the error thrown during getting TSL.
  *
  * @type {String}
  */
 const ERROR_GET_TSL = ThingAccess.ERROR_GET_TSL;
 
 /**
- * Code for errors thrown during getting custom config.
+ * Code for the error thrown during getting custom config.
  *
  * @type {String}
  */
 const ERROR_GET_CONFIG = ThingAccess.ERROR_GET_CONFIG;
 /**
- * Code for errors thrown during unregistering.
+ * Code for the error thrown during unregistering.
  *
  * @type {String}
  */
 const ERROR_UNREGISTER = ThingAccess.ERROR_UNREGISTER;
 
 /**
- * Returns the associated {@link Config}.
+ * Returns the global config string.
  *
- * @returns {Promise<Config>}
+ * @returns {Promise<String>}
  */
 function getConfig() {
-  return new Promise((resolve) => {
-    resolve(ThingAccess.getDriverConfig())
-  }).then((config) => {
-    return new Config(config);
+  return DriverConfigManager.get().getConfig();
+}
+
+// Initializing...
+DriverConfigManager.get().listenChanges();
+
+/**
+ * Destroys the whole package. It's usually called when it's no longer used.
+ *
+ * @returns {Promise<Void>}
+ */
+function destroy() {
+  return Promise.resolve(DriverConfigManager.get().unlistenChanges())
+    .then(() => {
+      return session.finalize();
   });
 }
 
@@ -191,11 +206,11 @@ function getConfig() {
         };
       }
     };
-    getConfig()
+    Config.get()
       .then(config => {
-        const things = config.getThings();
-        things.forEach(thing => {
-          const client = new ThingAccessClient(thing, callbacks);
+        const thingInfos = config.getThingInfos();
+        thingInfos.forEach(thingInfo => {
+          const client = new ThingAccessClient(thingInfo, callbacks);
           client.registerAndOnline()
             .then(() => {
               return new Promise(() => {
@@ -395,7 +410,8 @@ module.exports = {
   DEVICE_NAME,
   LOCAL_NAME,
   getConfig,
+  destroy,
   Config,
-  Thing,
+  ThingInfo,
   ThingAccessClient,
 };

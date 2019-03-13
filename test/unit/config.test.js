@@ -17,11 +17,13 @@
 'use strict';
 
 const should = require('should');
+const sinon = require('sinon');
 
 process.env.FUNCTION_ID = 'functionId';
 process.env.FUNCTION_NAME = 'functionName';
 
 const { Config } = require('../../index');
+const { DriverConfigManager } = require('../../lib/thing-access');
 
 describe('Config', function () {
   const configObject = {
@@ -73,12 +75,60 @@ describe('Config', function () {
       }).should.not.throw();
     });
   });
-  describe('#getThings', function () {
+  describe('#getThingInfos', function () {
     it('should pass since all requirements meet', function () {
       (function () {
         new Config(JSON.stringify(configObject))
-          .getThings();
+          .getThingInfos();
       }).should.not.throw();
+    });
+  });
+  describe('#get', function () {
+    it('should fail since get config failed', function (done) {
+      var stub = sinon.stub(DriverConfigManager.get(), 'getConfig')
+        .rejects(new Error('Cannot get config'));
+      function restore() {
+        stub.restore();
+        done();
+      }
+      Config.get()
+        .should.not.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(DriverConfigManager.get(), 'getConfig')
+        .resolves(JSON.stringify(configObject));
+      function restore() {
+        stub.restore();
+        done();
+      }
+      Config.get()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+  describe('#registerChangedCallback', function () {
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(DriverConfigManager.get(), 'on').resolves();
+      function restore() {
+        stub.restore();
+        done();
+      }
+      (function () {
+        Config.registerChangedCallback(function () {});
+      }).should.not.throw();
+      restore();
+    });
+  });
+  describe('#unregisterChangedCallback', function () {
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(DriverConfigManager.get(), 'removeListener').resolves();
+      function restore() {
+        stub.restore();
+        done();
+      }
+      (function () {
+        Config.unregisterChangedCallback(function () {});
+      }).should.not.throw();
+      restore();
     });
   });
 });

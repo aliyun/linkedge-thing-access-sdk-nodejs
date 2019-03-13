@@ -28,7 +28,7 @@ const {
   RESULT_SUCCESS,
   RESULT_FAILURE,
   ThingAccessClient,
-  getConfig,
+  Config,
 } = require('linkedge-thing-access-sdk');
 
 // Max retry interval in seconds for registerAndOnline.
@@ -137,7 +137,7 @@ class Connector {
    * Connects to Link IoT Edge and publishes properties to it.
    */
   connect() {
-    registerAndOnlineWithBackOffRetry(this._client, 1)
+    return registerAndOnlineWithBackOffRetry(this._client, 1)
       .then(() => {
         return new Promise(() => {
           // Running..., listen to sensor, and report to Link IoT Edge.
@@ -163,7 +163,7 @@ class Connector {
   disconnect() {
     // Clean the listener.
     this.lightSensor.listen(undefined);
-    this._client.cleanup()
+    return this._client.cleanup()
       .catch(err => {
         console.log(err);
       });
@@ -207,15 +207,15 @@ class Connector {
 }
 
 // Get the config which is auto-generated when devices are bound to this driver.
-getConfig()
+Config.get()
   .then((config) => {
     // Get the device information from config, which contains product key, device
     // name, etc. of the device.
-    const things = config.getThings();
-    things.forEach((thing) => {
+    const thingInfos = config.getThingInfos();
+    thingInfos.forEach((thingInfo) => {
       const lightSensor = new LightSensor();
       // The Thing format is just right for connector config, pass it directly.
-      const connector = new Connector(thing, lightSensor);
+      const connector = new Connector(thingInfo, lightSensor);
       connector.connect();
     });
   });

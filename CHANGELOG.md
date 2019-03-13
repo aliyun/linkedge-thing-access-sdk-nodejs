@@ -19,5 +19,14 @@
 
 ### v0.5.0
 * Use connect APIs for concurrently connecting.
-* Get driver config through APIs instead of environment.
+* Get driver config through APIs instead of environment variables.
 * Add getConfig(), getThings(), Thing to retrieve driver config.
+
+### v0.5.1
+* Rename getThings() to getThingInfos(), Thing to ThingInfo.
+
+### v0.5.2
+* Support for notifying config changes.
+* Add destroy() to destroy the whole package when no more used.
+* Add reason to error message when error no. is 3.
+

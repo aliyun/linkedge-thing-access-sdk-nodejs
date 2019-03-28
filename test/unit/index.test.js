@@ -29,7 +29,7 @@ const configObject = {
     {
       productKey: 'Your Product Key',
       deviceName: 'Your Device Name',
-      custom: {
+      custom: JSON.stringify({
         connection: {
           ip: "100.69.166.91",
           name: "TCP",
@@ -37,7 +37,7 @@ const configObject = {
           protocol: "TCP",
           slaveId: 1
         }
-      }
+      })
     }
   ],
   config: {}
@@ -59,6 +59,15 @@ describe('index', function () {
     destroy = undefined;
   });
   describe('#getConfig', function () {
+    it('should fail since driver config is not string', function (done) {
+      var stub = sinon.stub(DriverConfigManager.get(), 'getConfig')
+        .resolves(configObject);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      getConfig().should.be.rejected().then(restore, restore);
+    });
     it('should pass since all requirements meet', function (done) {
       var stub = sinon.stub(DriverConfigManager.get(), 'getConfig')
         .resolves(JSON.stringify(configObject));

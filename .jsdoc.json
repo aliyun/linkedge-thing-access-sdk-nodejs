@@ -6,6 +6,7 @@
     "include": [
       "index.js",
       "lib/config.js",
+      "lib/thing-access.js",
       "lib/thing-info.js"
       ],
     "includePattern": ".+\\.js(doc|x)?$",

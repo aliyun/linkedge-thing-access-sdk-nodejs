@@ -12,14 +12,13 @@ The `HelloThing` sample demonstrates you the procedure that connecting things to
 5. Set the driver name `HelloThing` and upload the previous zip file.
 6. Create a product, which owns an property named `temperature`(type of int32), and an event named `high_temperature`(type of int32 and has a input parameter named `temperature` whose type is int32).
 7. Create a device of the product created last step, with name `HelloThing`.
-8. Create a new group and add the Link IoT Edge gateway device into it.
-9. Go to Thing Driver tab and add `HelloThing` driver into that group.
-10. Add the `HelloThing` device into the group. Choose `HelloThing` as its driver.
-11. Add a *Message Router* with the folowing configuration:
+8. Create a new Edge Instance and add the Link IoT Edge gateway device into it.
+9. Add the `HelloThing` device into the Instance. Choose `HelloThing` as its driver.
+10. Add a *Message Router* with the following configuration:
   * Source: `HelloThing` device
   * TopicFilter: Properties.
   * Target: IoT Hub
-12. Deploy. A message from `HelloThing` device should be published to IoT Hub every 2 seconds. You can check this by going to the Device Running State page on Link IoT Edge console.
+11. Deploy. A message from `HelloThing` device should be published to IoT Hub every 2 seconds. You can check this by going to the Device Running State page on Link IoT Edge console.
 
 ## Usage
 First install this library:
@@ -103,6 +102,7 @@ npm run generate-docs
 The main API references are as follows.
 
 * **[getConfig()](#getconfig)**
+* Config#**[get()](#get)**
 * Config#**[getThingInfos()](#getthinginfos)**
 * Config#**[registerChangedCallback()](#registerchangedcallback)**
 * Config#**[unregisterChangedCallback()](#unregisterchangedcallback)**
@@ -112,7 +112,8 @@ The main API references are as follows.
 * ThingAccessClient#**[registerAndOnline()](#registerandonline)**
 * ThingAccessClient#**[online()](#online)**
 * ThingAccessClient#**[offline()](#offline)**
-* ThingAccessClient#**[getTsl()](#getTsl)**
+* ThingAccessClient#**[getTsl()](#gettsl)**
+* ThingAccessClient#**[getTslConfig()](#gettslconfig)**
 * ThingAccessClient#**[reportEvent()](#reportevent)**
 * ThingAccessClient#**[reportProperties()](#reportproperties)**
 * ThingAccessClient#**[cleanup()](#cleanup)**
@@ -124,6 +125,13 @@ The main API references are as follows.
 Returns the global config string.
 
 Returns `Promise<String>`.
+
+---
+<a name="get"></a>
+### Config.get()
+Returns the global config as object.
+
+Returns `Promise<Config>`.
 
 ---
 <a name="getthinginfos"></a>
@@ -150,9 +158,9 @@ Unregisters a callback.
 <a name="thinginfo"></a>
 ### ThingInfo
 The infos of a thing, which includes:
-* `productKey`: the product key of the thing.
-* `deviceName`: the device name of the thing.
-* `custom`: the custom config of the thing.
+* `productKey`: the product key of the thing, `String`.
+* `deviceName`: the device name of the thing, `String`.
+* `custom`: the custom config of the thing, `Object`.
 
 ---
 <a name="thingaccessclient"></a>
@@ -161,9 +169,9 @@ Constructs a [ThingAccessClient](#thingaccessclient) with the specified config a
 
 * `config`: the meta data config about the client, `Object`.
 * `callbacks`: callback functions responding to the requests from Link IoT Edge platform, `Object`.
-  * `getProperties(keys)`: a function responding to get thing properties requests, `function`.
-  * `setProperties(properties)`: a fucntion responding to set thing properties requests, `function`.
-  * `callService(name, args)`: a function responding to call thing services requests, `function`.
+  * `getProperties(keys)`: a function responding to get thing properties requests, `Function`.
+  * `setProperties(properties)`: a fucntion responding to set thing properties requests, `Function`.
+  * `callService(name, args)`: a function responding to call thing services requests, `Function`.
 
 ---
 <a name="setup"></a>
@@ -201,6 +209,13 @@ Returns the TSL(Thing Specification Language) string.
 Returns `Promise<String>`.
 
 ---
+<a name="gettslconfig"></a>
+### ThingAccessClient.getTslConfig()
+Returns the TSL(Thing Specification Language) config string.
+
+Returns `Promise<String>`.
+
+---
 <a name="reportevent"></a>
 ### ThingAccessClient.reportEvent(eventName, args)
 Reports a event to Link IoT Edge platform.
@@ -209,7 +224,7 @@ Reports a event to Link IoT Edge platform.
 * `args`: the parameters attached to the event, `Object`.
 
 ---
-<a name="reportProperties"></a>
+<a name="reportproperties"></a>
 ### ThingAccessClient.reportProperties(properties)
 Reports new property values to Link IoT Edge platform.
 

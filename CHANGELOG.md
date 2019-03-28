@@ -30,3 +30,6 @@
 * Add destroy() to destroy the whole package when no more used.
 * Add reason to error message when error no. is 3.
 
+### v0.5.3
+* Add getTslConfig() to retrieve TSL(Thing Specification Language) config string.
+

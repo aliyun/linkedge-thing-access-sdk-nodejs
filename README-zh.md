@@ -12,14 +12,13 @@
 5. 驱动名称设置为`HelloThing`，并上传前面准备好的zip包。
 6. 创建一个产品。该产品包含一个`temperature`属性（int32类型）和一个`high_temperature`事件（int32类型和一个int32类型名为`temperature`的输入参数）。
 7. 创建一个名为`HelloThing`的上述产品的设备。
-8. 创建一个新的分组，并将Link IoT Edge网关设备加入到分组。
-9. 进入设备驱动页，将之前添加的驱动加入到分组。
-10. 将`HelloThing`设备添加到分组，并将`HelloThing`驱动作为其驱动。
-11. 使用如下配置添加*消息路由*：
+8. 创建一个新的边缘实例，并将Link IoT Edge网关设备加入到该实例。
+9. 将`HelloThing`设备添加到边缘实例，并将`HelloThing`驱动作为其驱动。
+10. 使用如下配置添加*消息路由*：
   * 消息来源：`HelloThing`设备
   * TopicFilter：属性
   * 消息目标：IoT Hub
-12. 部署分组。`HelloThing`设备将每隔2秒上报属性到云端，可在Link IoT Edge控制台设备运行状态页面查看。
+11. 部署分组。`HelloThing`设备将每隔2秒上报属性到云端，可在Link IoT Edge控制台设备运行状态页面查看。
 
 ## 使用
 首先，安装设备接入SDK：
@@ -103,6 +102,7 @@ npm run generate-docs
 主要的API参考文档如下：
 
 * **[getConfig()](#getconfig)**
+* Config#**[get()](#get)**
 * Config#**[getThingInfos()](#getthinginfos)**
 * Config#**[registerChangedCallback()](#registerchangedcallback)**
 * Config#**[unregisterChangedCallback()](#unregisterchangedcallback)**
@@ -112,7 +112,8 @@ npm run generate-docs
 * ThingAccessClient#**[registerAndOnline()](#registerandonline)**
 * ThingAccessClient#**[online()](#online)**
 * ThingAccessClient#**[offline()](#offline)**
-* ThingAccessClient#**[getTsl()](#getTsl)**
+* ThingAccessClient#**[getTsl()](#gettsl)**
+* ThingAccessClient#**[getTslConfig()](#gettslconfig)**
 * ThingAccessClient#**[reportEvent()](#reportevent)**
 * ThingAccessClient#**[reportProperties()](#reportproperties)**
 * ThingAccessClient#**[cleanup()](#cleanup)**
@@ -121,16 +122,23 @@ npm run generate-docs
 ---
 <a name="getconfig"></a>
 ### getConfig()
-返回相关的配置字符串，该配置通常在设备与此驱动程序关联是由系统自动生成。
+返回相关的配置字符串，该配置通常在设备与此驱动程序关联时由系统自动生成。
 
 返回`Promise<String>`.
+
+---
+<a name="get"></a>
+### Config.get()
+返回相关的配置对象，该配置通常在设备与驱动程序关联时由系统自动生成。
+
+返回`Promise<Config>`.
 
 ---
 <a name="getthinginfos"></a>
 ### Config.getThingInfos()
 返回所有的关联的Thing信息。
 
-返回 `Array<ThingInfo>`.
+返回`Array<ThingInfo>`.
 
 ---
 <a name="registerchangedcallback"></a>
@@ -150,9 +158,9 @@ npm run generate-docs
 <a name="thinginfo"></a>
 ### ThingInfo
 Thing信息类，包含:
-* `productKey`: 设备product key。
-* `deviceName`: 设备device name。
-* `custom`: 设备自定义配置。
+* `productKey`: 设备product key，`String`。
+* `deviceName`: 设备device name，`String`。
+* `custom`: 设备自定义配置，`Object`。
 
 ---
 <a name="thingaccessclient"></a>
@@ -161,9 +169,9 @@ Thing信息类，包含:
 
 * `config`: 配置相关的元信息, `Object`。
 * `callbacks`: 响应来自Link IoT Edge请求的回调函数, `Object`。
-  * `getProperties(keys)`: 响应获取属性请求的回调函数, `function`。
-  * `setProperties(properties)`: 响应设置属性请求的回调函数, `function`。
-  * `callService(name, args)`: 响应调用服务请求的回调函数, `function`。
+  * `getProperties(keys)`: 响应获取属性请求的回调函数, `Function`。
+  * `setProperties(properties)`: 响应设置属性请求的回调函数, `Function`。
+  * `callService(name, args)`: 响应调用服务请求的回调函数, `Function`。
 
 <a name="setup"></a>
 ### ThingAccessClient.setup()
@@ -200,6 +208,13 @@ Thing信息类，包含:
 返回`Promise<String>`。
 
 ---
+<a name="gettslconfig"></a>
+### ThingAccessClient.getTslConfig()
+返回TSL(Thing Specification Language)配置字符串。
+
+返回`Promise<String>`。
+
+---
 <a name="reportevent"></a>
 ### ThingAccessClient.reportEvent(eventName, args)
 上报事件到Link IoT Edge。
@@ -208,7 +223,7 @@ Thing信息类，包含:
 * `args`: 事件附属信息, `Object`。
 
 ---
-<a name="reportProperties"></a>
+<a name="reportproperties"></a>
 ### ThingAccessClient.reportProperties(properties)
 上报属性到Link IoT Edge。
 

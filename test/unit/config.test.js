@@ -22,7 +22,7 @@ const sinon = require('sinon');
 process.env.FUNCTION_ID = 'functionId';
 process.env.FUNCTION_NAME = 'functionName';
 
-const { Config } = require('../../index');
+const Config = require('../../lib/config');
 const { DriverConfigManager } = require('../../lib/thing-access');
 
 describe('Config', function () {
@@ -31,7 +31,7 @@ describe('Config', function () {
       {
         productKey: 'Your Product Key',
         deviceName: 'Your Device Name',
-        custom: {
+        custom: JSON.stringify({
           connection: {
             ip: "100.69.166.91",
             name: "TCP",
@@ -39,7 +39,7 @@ describe('Config', function () {
             protocol: "TCP",
             slaveId: 1
           }
-        }
+        })
       }
     ],
     config: {}

@@ -13,26 +13,10 @@ process.env.FUNCTION_NAME = 'functionName';
 const {
   session,
   DriverConfigManager,
+  ThingAccessClient,
 } = require('../../lib/thing-access');
 
-// Outermost describe
-describe('', function () {
-  var listenChanges;
-  var index;
-  before(function () {
-    listenChanges = sinon.stub(DriverConfigManager.get(), 'listenChanges').resolves();
-    index = require('../../index');
-  });
-  after(function () {
-    listenChanges.restore();
-    index.destroy();
-  });
-
 describe('ThingAccessClient', function () {
-  const {
-    ThingAccessClient
-  } = require('../../index');
-
   var config = {
     productKey: 'Your Product Key',
     deviceName: 'Your Device Name',
@@ -241,12 +225,8 @@ describe('ThingAccessClient', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey === config.productKey) {
-                        callback(undefined, 0, JSON.stringify({}));
-                      } else {
-                        callback(new Error('Illegal product key.'));
-                      }
+                    get_config: function (key, callback) {
+                      callback(new Error('Illegal product key.'));
                     },
                   });
                 }
@@ -280,10 +260,8 @@ describe('ThingAccessClient', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey) {
-                        callback(undefined, 5, undefined);
-                      }
+                    get_config: function (key, callback) {
+                      callback(undefined, 5, undefined);
                     },
                   });
                 }
@@ -314,10 +292,8 @@ describe('ThingAccessClient', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey) {
-                        callback(undefined, 0, {});
-                      }
+                    get_config: function (key, callback) {
+                      callback(undefined, 0, {});
                     },
                   });
                 }
@@ -345,6 +321,120 @@ describe('ThingAccessClient', function () {
       }
       var client = new ThingAccessClient(config, callbacks);
       client.getTsl()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+  describe('#getTslConfig', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    it('should fail since illegal product key', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (key, callback) {
+                      callback(new Error('Illegal product key.'));
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      var client = new ThingAccessClient({
+        productKey: 'Product Key',
+        deviceName: config.deviceName,
+      }, callbacks);
+      client.getTslConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since illegal returned code', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (key, callback) {
+                      callback(undefined, 5, undefined);
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      var client = new ThingAccessClient(config, callbacks);
+      client.getTslConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since illegal returned result', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    get_config: function (key, callback) {
+                      callback(undefined, 0, {});
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      var client = new ThingAccessClient(config, callbacks);
+      client.getTslConfig()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function(done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      var client = new ThingAccessClient(config, callbacks);
+      client.getTslConfig()
         .should.not.be.rejected().then(restore, restore);
     });
   });
@@ -1302,7 +1392,7 @@ describe('DriverConfigManager', function () {
     afterEach(function () {
       session._reset();
     });
-    it('should fail since illegal product key', function (done) {
+    it('should fail since illegal function name', function (done) {
       var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
         return {
           connection: fakeCreateConnection(),
@@ -1313,12 +1403,8 @@ describe('DriverConfigManager', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey === config.productKey) {
-                        callback(undefined, 0, JSON.stringify({}));
-                      } else {
-                        callback(new Error('Illegal product key.'));
-                      }
+                    get_config: function (key, callback) {
+                      callback(new Error('Illegal function name.'));
                     },
                   });
                 }
@@ -1348,10 +1434,8 @@ describe('DriverConfigManager', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey) {
-                        callback(undefined, 5, undefined);
-                      }
+                    get_config: function (key, callback) {
+                      callback(undefined, 5, undefined);
                     },
                   });
                 }
@@ -1381,10 +1465,8 @@ describe('DriverConfigManager', function () {
               return {
                 getInterface: function (objName, ifaceName, callback) {
                   callback(undefined, {
-                    get_config: function (productKey, callback) {
-                      if (productKey) {
-                        callback(undefined, 0, {});
-                      }
+                    get_config: function (key, callback) {
+                      callback(undefined, 0, {});
                     },
                   });
                 }
@@ -1410,6 +1492,297 @@ describe('DriverConfigManager', function () {
         done();
       }
       DriverConfigManager.get().getConfig()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+  describe('#listenChanges', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    it('should fail since session initialization failed', function (done) {
+      var stub = sinon.stub(session, 'initialize').rejects(new Error('Cannot initialize'));
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().listenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since dbus error when subscribing config changes', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    subscribe_config: function (moduleName, key, owner, cb) {
+                      cb(new Error('DBus error'));
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().listenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since invalid returned code when subscribing config changes', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    subscribe_config: function (moduleName, key, owner, cb) {
+                      cb(null, 1);
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().listenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    subscribe_config: function (moduleName, key, owner, cb) {
+                      cb(null, 0);
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().listenChanges()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+  describe('#unlistenChanges', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    it('should fail since session initialization failed', function (done) {
+      var stub = sinon.stub(session, 'initialize').rejects(new Error('Cannot initialize'));
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().unlistenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since dbus error when unsubscribing config changes', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    unsubscribe_config: function (moduleName, key, cb) {
+                      cb(new Error('DBus error'));
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().unlistenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should fail since invalid returned code when unsubscribing config changes', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    unsubscribe_config: function (moduleName, key, cb) {
+                      cb(null, 1);
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().unlistenChanges()
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return fakeDimuService;
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    unsubscribe_config: function (moduleName, key, cb) {
+                      cb(null, 0);
+                    },
+                  });
+                }
+              };
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      DriverConfigManager.get().unlistenChanges()
+        .should.not.be.rejected().then(restore, restore);
+    });
+  });
+});
+
+describe('session', function () {
+  describe('#finalize', function () {
+    afterEach(function () {
+      session._reset();
+    });
+    /*it('should fail since session has not been initialized', function (done) {
+      session.finalize().should.be.rejected().then(done, done);
+    });*/
+    it('should fail since unregistering module from DIMU failed', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: function (serviceName) {
+            if (serviceName === 'iot.dmp.dimu') {
+              return {
+                getInterface: function (objName, ifaceName, callback) {
+                  callback(undefined, {
+                    registerDriver: fakeRegisterModule,
+                    unregisterDriver: function (infos, callback) {
+                      callback(new Error('Cannot unregister module'));
+                    },
+                    connect: fakeConnect,
+                  });
+                }
+              };
+            } else if (serviceName === 'iot.dmp.configmanager') {
+              return fakeConfigService;
+            }
+          },
+          requestName: fakeRequestName,
+          releaseName: fakeReleaseName,
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      session.finalize().should.be.rejected().then(restore, restore);
+    });
+    it('should fail since releasing name failed', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(function () {
+        return {
+          connection: fakeCreateConnection(),
+          getService: fakeGetService,
+          requestName: fakeRequestName,
+          releaseName: function (name, callback) {
+            callback(new Error(`Cannot release ${name}`));
+          },
+          exportInterface: fakeExportInterface,
+        };
+      });
+      function restore() {
+        stub.restore();
+        done();
+      }
+      session.initialize()
+        .then(function () {
+          return session.finalize();
+        })
+        .should.be.rejected().then(restore, restore);
+    });
+    it('should pass since all requirements meet', function (done) {
+      var stub = sinon.stub(dbus, 'createClient').callsFake(fakeCreateClient);
+      function restore() {
+        stub.restore();
+        done();
+      }
+      session.initialize()
+        .then(function () {
+          return session.finalize();
+        })
         .should.not.be.rejected().then(restore, restore);
     });
   });
@@ -1475,7 +1848,7 @@ function fakeExportInterface() {
 
 }
 
-function fakeGetConfig(productKey, callback) {
+function fakeGetConfig(key, callback) {
   callback(null, 0, JSON.stringify({}));
 }
 
@@ -1519,5 +1892,3 @@ var fakeDimuService = {
     callback(undefined, fakeDimuInterface);
   }
 };
-
-}); // Outermost describe

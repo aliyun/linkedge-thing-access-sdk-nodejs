@@ -21,13 +21,13 @@ const should = require('should');
 process.env.FUNCTION_ID = 'functionId';
 process.env.FUNCTION_NAME = 'functionName';
 
-const { ThingInfo } = require('../../index');
+const ThingInfo = require('../../lib/thing-info');
 
 describe('ThingInfo', function () {
   const global = {
     productKey: 'Your Product Key',
     deviceName: 'Your Device Name',
-    custom: 'Your Custom Config',
+    custom: '{}',
   };
   describe('#from', function () {
     it('should fail since illegal product key config', function () {
@@ -38,6 +38,12 @@ describe('ThingInfo', function () {
     });
     it('should fail since illegal device name config', function () {
       const config = Object.assign({}, global, { deviceName: undefined });
+      (function () {
+        ThingInfo.from(config)
+      }).should.throw();
+    });
+    it('should fail since custom config is not JSON string', function () {
+      const config = Object.assign({}, global, { custom: 'Your Custom Config' });
       (function () {
         ThingInfo.from(config)
       }).should.throw();

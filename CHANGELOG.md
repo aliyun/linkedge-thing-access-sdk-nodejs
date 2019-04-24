@@ -33,3 +33,7 @@
 ### v0.5.3
 * Add getTslConfig() to retrieve TSL(Thing Specification Language) config string.
 
+### v0.5.4
+* Keep callback interfaces consistent
+* Discard the custom config if it's not JSON string
+

@@ -37,3 +37,6 @@
 * Keep callback interfaces consistent
 * Discard the custom config if it's not JSON string
 
+### v0.6.0 (2019-05-30)
+* Add Config.getDriverInfo() to retrieve driver info.
+* Deprecate ThingAccessClient.getTslConfig(), and use ThingAccessClient.getTslExtInfo() instead.

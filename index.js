@@ -139,11 +139,19 @@ const ERROR_DISCONNECT = ThingAccess.ERROR_DISCONNECT;
 const ERROR_GET_TSL = ThingAccess.ERROR_GET_TSL;
 
 /**
- * Code for the error thrown during getting TSL config.
+ * Code for the error thrown during getting TSL extend info.
  *
  * @type {String}
  */
-const ERROR_GET_TSL_CONFIG = ThingAccess.ERROR_GET_TSL_CONFIG;
+const ERROR_GET_TSL_EXT_INFO = ThingAccess.ERROR_GET_TSL_EXT_INFO;
+
+/**
+ * Code for the error thrown during getting TSL config.
+ *
+ * @type {String}
+ * @deprecated Use {@link ERROR_GET_TSL_EXT_INFO} instead.
+ */
+const ERROR_GET_TSL_CONFIG = ERROR_GET_TSL_EXT_INFO;
 
 /**
  * Code for the error thrown during getting custom config.
@@ -208,6 +216,7 @@ module.exports = {
   ERROR_DISCONNECT,
   ERROR_GET_TSL,
   ERROR_GET_TSL_CONFIG,
+  ERROR_GET_TSL_EXT_INFO,
   ERROR_GET_CONFIG,
   ERROR_UNREGISTER,
   // Used for configs

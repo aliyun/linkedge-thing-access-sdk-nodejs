@@ -104,6 +104,7 @@ The main API references are as follows.
 * **[getConfig()](#getconfig)**
 * Config#**[get()](#get)**
 * Config#**[getThingInfos()](#getthinginfos)**
+* Config#**[getDriverInfo()](#getdriverinfo)**
 * Config#**[registerChangedCallback()](#registerchangedcallback)**
 * Config#**[unregisterChangedCallback()](#unregisterchangedcallback)**
 * **[ThingInfo](#thinginfo)**
@@ -113,7 +114,8 @@ The main API references are as follows.
 * ThingAccessClient#**[online()](#online)**
 * ThingAccessClient#**[offline()](#offline)**
 * ThingAccessClient#**[getTsl()](#gettsl)**
-* ThingAccessClient#**[getTslConfig()](#gettslconfig)**
+* ThingAccessClient#~~**[getTslConfig()](#gettslconfig)**~~
+* ThingAccessClient#**[getTslExtInfo()](#gettslextinfo)**
 * ThingAccessClient#**[reportEvent()](#reportevent)**
 * ThingAccessClient#**[reportProperties()](#reportproperties)**
 * ThingAccessClient#**[cleanup()](#cleanup)**
@@ -139,6 +141,13 @@ Returns `Promise<Config>`.
 Returns all thing infos for further use.
 
 Returns `Array<ThingInfo>`.
+
+---
+<a name="getdriverinfo"></a>
+### Config.getDriverInfo()
+Returns global driver info for further use.
+
+Returns `Object`.
 
 ---
 <a name="registerchangedcallback"></a>
@@ -210,8 +219,17 @@ Returns `Promise<String>`.
 
 ---
 <a name="gettslconfig"></a>
-### ThingAccessClient.getTslConfig()
+### ~~ThingAccessClient.getTslConfig()~~
+Deprecated. Use [getTslExtInfo](#gettslextinfo) instead.
+
 Returns the TSL(Thing Specification Language) config string.
+
+Returns `Promise<String>`.
+
+---
+<a name="gettslextinfo"></a>
+### ThingAccessClient.getTslExtInfo()
+Returns the TSL(Thing Specification Language) extend info string.
 
 Returns `Promise<String>`.
 

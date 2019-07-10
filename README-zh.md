@@ -104,6 +104,7 @@ npm run generate-docs
 * **[getConfig()](#getconfig)**
 * Config#**[get()](#get)**
 * Config#**[getThingInfos()](#getthinginfos)**
+* Config#**[getDriverInfo()](#getdriverinfo)**
 * Config#**[registerChangedCallback()](#registerchangedcallback)**
 * Config#**[unregisterChangedCallback()](#unregisterchangedcallback)**
 * **[ThingInfo](#thinginfo)**
@@ -113,7 +114,8 @@ npm run generate-docs
 * ThingAccessClient#**[online()](#online)**
 * ThingAccessClient#**[offline()](#offline)**
 * ThingAccessClient#**[getTsl()](#gettsl)**
-* ThingAccessClient#**[getTslConfig()](#gettslconfig)**
+* ThingAccessClient#~~**[getTslConfig()](#gettslconfig)~~**
+* ThingAccessClient#**[getTslExtInfo()](#gettslextinfo)**
 * ThingAccessClient#**[reportEvent()](#reportevent)**
 * ThingAccessClient#**[reportProperties()](#reportproperties)**
 * ThingAccessClient#**[cleanup()](#cleanup)**
@@ -139,6 +141,13 @@ npm run generate-docs
 返回所有的关联的Thing信息。
 
 返回`Array<ThingInfo>`.
+
+---
+<a name="getdriverinfo"></a>
+### Config.getDriverInfo()
+返回关联的驱动信息。
+
+返回`Object`.
 
 ---
 <a name="registerchangedcallback"></a>
@@ -209,8 +218,17 @@ Thing信息类，包含:
 
 ---
 <a name="gettslconfig"></a>
-### ThingAccessClient.getTslConfig()
+### ~~ThingAccessClient.getTslConfig()~~
+已废弃。使用[getTslExtInfo](#gettslextinfo)替代。
+
 返回TSL(Thing Specification Language)配置字符串。
+
+返回`Promise<String>`。
+
+---
+<a name="gettslextinfo"></a>
+### ThingAccessClient.getTslExtInfo()
+返回TSL(Thing Specification Language)扩展信息字符串。
 
 返回`Promise<String>`。
 

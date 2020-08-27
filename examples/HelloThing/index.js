@@ -168,6 +168,11 @@ Config.get()
       const connector = new Connector(thingInfo, thermometer);
       connector.connect();
     });
+  })
+  .catch((err) => {
+    console.log(`Config.get() err: ${err}.`);
+    console.log('Exit...\n');
+    process.exit(1);
   });
 
 module.exports.handler = function (event, context, callback) {

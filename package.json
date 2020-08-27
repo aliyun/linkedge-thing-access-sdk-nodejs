@@ -1,6 +1,6 @@
 {
   "name": "linkedge-thing-access-sdk",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A library allows developers to write Node.js Function Compute functions which will run within Link Edge to connect things to it.",
   "repository": {
     "type": "git",

@@ -218,6 +218,11 @@ Config.get()
       const connector = new Connector(thingInfo, lightSensor);
       connector.connect();
     });
+  })
+  .catch((err) => {
+    console.log(`Config.get() err: ${err}.`);
+    console.log('Exit...\n');
+    process.exit(1);
   });
 
 // This is a handler which never be invoked in the example.

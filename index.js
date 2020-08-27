@@ -176,7 +176,11 @@ function getConfig() {
 }
 
 // Initializing...
-DriverConfigManager.get().listenChanges();
+DriverConfigManager.get().listenChanges()
+  .catch((err) => {
+    console.log(`Failed to listen driver config changes: ${err}.`);
+    process.exit(1);
+  });
 
 /**
  * Destroys the whole package. It's usually called when it's no longer used.
